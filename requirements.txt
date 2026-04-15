@@ -1,0 +1,7 @@
+discord.py==2.6.4
+opencv-python-headless==4.13.0.90
+pytesseract==0.3.13
+numpy==2.4.2
+python-dotenv==1.2.1
+loguru==0.7.3
+requests==2.32.5
