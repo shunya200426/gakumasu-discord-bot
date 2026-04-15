@@ -1,0 +1,73 @@
+# required_score/container_builder.py
+from typing import Iterable, Tuple, Any, Optional
+from pathlib import Path
+
+from discord import ui
+from models.nia.required_score.result import NiaRequiredScoreResult
+from config.nia_settings import NIA
+from config.settings import CHARACTERS
+
+
+def build_required_score_container(
+    result: NiaRequiredScoreResult,
+    override_pairs: Optional[Iterable[Tuple[str, Any]]] = None,
+) -> ui.Container:
+    # 埋め込みカラーの設定
+    character_color = CHARACTERS[result.character]["color"]
+
+    # キャラクターの設定
+    character_name = CHARACTERS[result.character]["name"]
+
+    # 難易度 / オーディションの設定
+    mode_name = NIA[result.mode]["name"]
+    audition_name = NIA[result.mode][result.audition]["name"]
+    
+    # きらめきの設定
+    if result.is_boost_active:
+        kirameki_block = "### アイドル強化月間適用\n**ほしのきらめき: {v}**\n".format(v=result.kirameki)
+    else:
+        kirameki_block = ""
+
+    # チャレンジPアイテムの表記設定
+    if result.challenge_P_item != 40:
+        p_item_block = f"\n### チャレンジPアイテム変更\n**{result.challenge_P_item}%**\n"
+    else:
+        p_item_block = ""
+
+    # 必要スコアの表記設定
+    if override_pairs is not None:
+        lines = [f"{name}: {val}" for name, val in override_pairs]
+        required_block = "　\n".join(lines) + "　"
+    else:
+        required_block = (
+            f"**SS**: {result.SS_required_score}　\n"
+            f"**SS+**: {result.SS_plus_required_score}　\n"
+            f"**SSS**: {result.SSS_required_score}　\n"
+            f"**SSS+**: {result.SSS_plus_required_score}　"
+        )
+
+    # テキストテンプレートの読み込み
+    tpl_path = Path(__file__).with_name("template.md")
+    text_template = tpl_path.read_text(encoding="utf-8")
+
+    # テキストテンプレートに情報を入力
+    content = text_template.format(
+        mode            = mode_name,
+        audition        = audition_name,
+        option_kirameki = kirameki_block,
+        character       = character_name,
+        option_P_item   = p_item_block,
+        vo_status       = result.vo_status,
+        da_status       = result.da_status,
+        vi_status       = result.vi_status,
+        vo_bonus        = result.vo_bonus,
+        da_bonus        = result.da_bonus,
+        vi_bonus        = result.vi_bonus,
+        now_fans        = result.now_fans,
+        required_block  = required_block
+    )
+
+    # 埋め込みを作成して返す
+    container = ui.Container(accent_color=character_color)
+    container.add_item(ui.TextDisplay(content=content))
+    return container

@@ -1,0 +1,37 @@
+from dataclasses import dataclass
+
+@dataclass
+class NiaFinalGradeParams:
+    # 使用キャラクター
+    character: str
+    
+    # モード
+    mode: str
+
+    # オーディション
+    audition: str
+
+    # 現在のそれぞれのステータス値
+    vo_status: int
+    da_status: int
+    vi_status: int
+
+    # レッスンボーナス
+    vo_bonus: float
+    da_bonus: float
+    vi_bonus: float
+
+    # オーディションスコア
+    vo_score: int
+    da_score: int
+    vi_score: int
+
+    # 現在のファン数
+    now_fans: int
+
+    # チャレンジPアイテムの倍率
+    challenge_P_item: int
+
+    # アイドル強化月間
+    is_boost_active: bool
+    kirameki: int

@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+
+# 仮想環境
+venv/
+
+# 環境変数
+.env
+
+# ログ
+logs/
+*.log
+
+# OCR用の入力画像・一時データ
+data_inputs/
+
+# 実験用コマンドたち
+commands/announcements/
+commands/dev/
+
+# 登録サーバー情報
+config/blocklist.json
+config/servers.json
