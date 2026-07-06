@@ -1,7 +1,5 @@
 from abc import ABC, abstractmethod
 from discord import Interaction, Embed, ui
-from commands.announcements.container_builder import build_container
-from commands.announcements.embed_builder import build_embed
 from utils.logger import get_logger, use_log_context
 from utils.context import build_ctx_from_interaction
 from contextlib import asynccontextmanager
@@ -249,35 +247,6 @@ class BaseCommand(ABC):
                 return await orig(self, *a, **kw)
 
         setattr(cls, "execute", _wrapped)
-
-
-    async def _short_circuit_if_new_character(self, *, character_key: str | None, ephemeral: bool = False) -> bool:
-        """
-        レジストリに“告知定義”があるキャラなら、告知UIだけ送って True を返す（＝以降を中断）。
-        レジストリに無ければ False を返して通常処理を続行。
-        """
-        if not character_key:
-            return False
-        key = str(character_key)
-
-        # 1) v2（Container）優先：ここでViewを作る
-        container = build_container(key)
-        if container is not None:
-            view = ui.LayoutView(timeout=None)
-            view.add_item(container)
-            if self.interaction.response.is_done():
-                await self.interaction.followup.send(view=view)
-            else:
-                await self.interaction.response.send_message(view=view)
-            return True
-
-        # 2) Embed フォールバック
-        embed = build_embed(key)
-        if embed is not None:
-            await self._safe_send(embed=embed, ephemeral=ephemeral)
-            return True
-
-        return False
     
 
     @abstractmethod

@@ -15,9 +15,6 @@ logs/
 # OCR用の入力画像・一時データ
 data_inputs/
 
-# 実験用コマンドたち
-commands/announcements/
-commands/dev/
 
 # 登録サーバー情報
 config/blocklist.json

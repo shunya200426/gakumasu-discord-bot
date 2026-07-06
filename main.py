@@ -290,7 +290,6 @@ MODULES = [
     "commands.hajime_commands.final_grade.ui",
     "commands.hajime_commands.required_score.ui",
     "commands.hajime_commands.required_score_from_img.ui",
-    # "commands.dev.test_component_v2"
 ]
 
 # 追加: ログ初期化（本番も開発もこれでOK）
