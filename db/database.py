@@ -6,6 +6,13 @@ from config.paths import REQUIRED_DIRECTORIES, DATABASE_PATH
 from db.connection import SQLiteConnection
 from db.schema import create_tables
 
+from db.repositories import (
+    GuildRepository,
+    UserRepository,
+    LogRepository,
+    InferenceRepository,
+)
+
 
 class DatabaseManager:
     """
@@ -18,6 +25,11 @@ class DatabaseManager:
     def __init__(self) -> None:
         self.connection_manager = SQLiteConnection(DATABASE_PATH)
         self.connection: sqlite3.Connection | None = None
+
+        self.guilds: GuildRepository | None = None
+        self.users: UserRepository | None = None
+        self.logs: LogRepository | None = None
+        self.inference: InferenceRepository | None = None
 
     def initialize(self) -> None:
         """
@@ -32,6 +44,11 @@ class DatabaseManager:
         self.connection = self.connection_manager.connect()
 
         create_tables(self.connection)
+
+        self.guilds = GuildRepository(self.connection)
+        self.users = UserRepository(self.connection)
+        self.logs = LogRepository(self.connection)
+        self.inference = InferenceRepository(self.connection)
 
     def close(self) -> None:
         """

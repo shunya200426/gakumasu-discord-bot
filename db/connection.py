@@ -68,8 +68,11 @@ class SQLiteConnection:
         """
         with文終了時の処理。
 
-        例外が発生していなければcommit、
-        例外が発生していればrollbackする。
+        例外がなければcommit、
+        例外があればrollbackする。
+
+        接続自体は維持し、
+        Bot終了時にclose()する。
         """
         if self.connection is None:
             return

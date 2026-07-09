@@ -232,18 +232,8 @@ class BaseCommand(ABC):
             # request_id をctxへ統合（DEBUG含む全レベルで先頭に表示される）
             if self._request_id:
                 ctx = {"request_id": self._request_id, **ctx}
-
-            with use_log_context(ctx):
-                # 3) 新キャラショートサーキット（params.character を検査）
-                try:
-                    params = a[0] if a else kw.get("params")
-                    char_key = getattr(params, "character", None)
-                except Exception:
-                    char_key = None
-                if await BaseCommand._short_circuit_if_new_character(self, character_key=char_key):
-                    return
                 
-                # 4) 元の実装へ
+                # 3) 元の実装へ
                 return await orig(self, *a, **kw)
 
         setattr(cls, "execute", _wrapped)
