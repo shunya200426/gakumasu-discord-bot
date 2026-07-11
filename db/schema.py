@@ -26,6 +26,7 @@ CREATE_TABLE_QUERIES = [
     CREATE TABLE IF NOT EXISTS blocked_users (
         user_id INTEGER PRIMARY KEY,
         reason TEXT,
+        user_message TEXT,
         blocked_at TEXT NOT NULL,
         blocked_by INTEGER,
         FOREIGN KEY (user_id) REFERENCES users(user_id),

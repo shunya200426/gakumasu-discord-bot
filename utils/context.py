@@ -1,37 +1,74 @@
-import discord
-from config.server_registry import ServerRegistry
-from pathlib import Path
+# utils/context.py
+
 import logging
+import sqlite3
+from typing import Optional
+
+import discord
+
 
 log = logging.getLogger("gakumasu_bot")
 
-_HERE = Path(__file__).resolve()
-_DEFAULT = _HERE.parents[1] / "config" / "servers.json"
-_FALLBACK = Path("servers.json")
-_PATH = _DEFAULT if _DEFAULT.exists() else _FALLBACK
-REGISTRY = ServerRegistry(_PATH)
-log.info("ServerRegistry path resolved: %s (exists=%s)", _PATH, _PATH.exists())
+_guild_repository = None
 
-async def build_ctx_from_interaction(interaction: discord.Interaction) -> dict:
+
+def configure_context_repository(guild_repository) -> None:
     """
-    INFO/ERROR ログに自動付与させるための文脈(dict)を構築
+    ログコンテキスト生成で使用するGuildRepositoryを設定する。
+
+    Bot起動時にmain.pyから一度だけ呼び出す。
     """
-    g = getattr(interaction, "guild", None)
-    u = getattr(interaction, "user", None)
-    gid = getattr(g, "id", None)
-    gname = getattr(g, "name", "(DM)") or "(DM)"
-    # circle_name は後で受動リロード版に差し替え予定。まずは未登録扱いでOK。
-    try:
-        circle = await REGISTRY.circle_name(gid)  # async 実装前なら同期版に置き換え可
-    except Exception:
-        circle = "(unregistered)"
-    uid = getattr(u, "id", None)
-    uname = getattr(u, "display_name", None) or getattr(u, "global_name", None) or getattr(u, "name", None) or "(unknown)"
+    global _guild_repository
+    _guild_repository = guild_repository
+    log.info("GuildRepository configured for interaction context")
+
+
+async def build_ctx_from_interaction(
+    interaction: discord.Interaction,
+) -> dict:
+    """
+    INFO/ERRORログに自動付与する文脈を構築する。
+    """
+    guild = getattr(interaction, "guild", None)
+    user = getattr(interaction, "user", None)
+
+    guild_id = getattr(guild, "id", None)
+    guild_name = getattr(guild, "name", None) or "(DM)"
+
+    community_name = "(unregistered)"
+
+    if guild_id is not None and _guild_repository is not None:
+        try:
+            guild_data: Optional[sqlite3.Row] = (
+                _guild_repository.get_by_guild_id(guild_id)
+            )
+
+            if guild_data is not None:
+                community_name = (
+                    guild_data["community_name"]
+                    or "(unregistered)"
+                )
+
+        except Exception:
+            log.warning(
+                "Failed to get community name from database: guild_id=%s",
+                guild_id,
+                exc_info=True,
+            )
+
+    user_id = getattr(user, "id", None)
+    user_name = (
+        getattr(user, "display_name", None)
+        or getattr(user, "global_name", None)
+        or getattr(user, "name", None)
+        or "(unknown)"
+    )
+
     return {
-        "guild_name": gname,
-        "guild_id": str(gid) if gid else "-",
-        "circle_name": circle,
-        "user": u,
-        "user_name": uname,
-        "user_id": str(uid) if uid else "-",
+        "guild_name": guild_name,
+        "guild_id": str(guild_id) if guild_id is not None else "-",
+        "circle_name": community_name,
+        "user": user,
+        "user_name": user_name,
+        "user_id": str(user_id) if user_id is not None else "-",
     }

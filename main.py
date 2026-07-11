@@ -7,23 +7,16 @@ from discord.ext import commands
 import asyncio
 import importlib
 from commands.groups import gkms
-from config.server_registry import ServerRegistry
 import time
 from typing import Hashable
 from datetime import datetime
 import zoneinfo
-
-# 追加: ロガー
+from db.database import DatabaseManager
 from utils.logger import setup_logging, get_logger, use_log_context
-from utils.context import build_ctx_from_interaction
-
-# ===== ユーザー・ブロック機能（main.py側へ移設） =====
-# from moderation.blocklist_manager import maybe_block_and_respond
-from pathlib import Path
-import json
-BASE_DIR = Path(__file__).resolve().parent
-SERVERS_JSON = str(BASE_DIR / "config" / "servers.json")
-registry = ServerRegistry(SERVERS_JSON)
+from utils.context import (
+    build_ctx_from_interaction,
+    configure_context_repository,
+)
 
 # ====== 起動前準備 ======
 load_dotenv()
@@ -33,16 +26,24 @@ TEST_GUILD_ID = os.getenv("TEST_GUILD_ID")
 DEV_USER_ID = int(os.getenv("DEV_USER_ID", "0") or 0)
 ALERT_CHANNEL_ID = int(os.getenv("ALERT_CHANNEL_ID", "0") or 0)
 
+# ====== DB初期化 ======
+db = DatabaseManager()
+db.initialize()
+
+if db.guilds is None or db.users is None:
+    raise RuntimeError("Repository initialization failed")
+
+guild_repository = db.guilds
+user_repository = db.users
+
+configure_context_repository(guild_repository)
+
 # --- 開発者DMのクールダウン（秒） ---
 # .env で上書き可能（例） DEV_DM_COOLDOWN_PER_GUILD=300
 DEV_DM_COOLDOWN_PER_GUILD = int(os.getenv("DEV_DM_COOLDOWN_PER_GUILD", "300"))  # 同ギルドから5分
 DEV_DM_COOLDOWN_PER_USER  = int(os.getenv("DEV_DM_COOLDOWN_PER_USER",  "180"))  # 同ユーザーから3分
 DEV_DM_COOLDOWN_GLOBAL    = int(os.getenv("DEV_DM_COOLDOWN_GLOBAL",    "30"))   # 全体で30秒
 
-
-_BLOCKLIST_PATH = Path(str(BASE_DIR / "config" / "blocklist.json"))
-_blocklist_cache: dict[str, str] = {}
-_blocklist_mtime_ns: int = -1
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -67,49 +68,6 @@ class SimpleRateLimiter:
         return max(0.0, nxt - now)
 
 _rate_limiter = SimpleRateLimiter()
-
-
-def _load_user_blocklist() -> set[str]:
-    """
-    config/blocklist.json を軽量にホットリロード
-    """
-    global _blocklist_cache, _blocklist_mtime_ns
-    try:
-        st = _BLOCKLIST_PATH.stat()
-    except FileNotFoundError:
-        _blocklist_cache = {}
-        _blocklist_mtime_ns = -1
-        return _blocklist_cache
-
-    if st.st_mtime_ns == _blocklist_mtime_ns:
-        return _blocklist_cache  # 変更なし
-
-    try:
-        data = json.loads(_BLOCKLIST_PATH.read_text(encoding="utf-8"))
-        # 形式に応じて判定（リストか旧フォーマットか）
-        if isinstance(data, dict) and "user_ids" in data:
-            # 旧形式サポート
-            _blocklist_cache = {str(uid): "このユーザーは制限されています。" for uid in data["user_ids"]}
-        elif isinstance(data, list):
-            # 新形式: user_id + message
-            _blocklist_cache = {str(entry["user_id"]): entry.get("message", "このユーザーは制限されています。") for entry in data}
-        else:
-            _blocklist_cache = {}
-        _blocklist_mtime_ns = st.st_mtime_ns
-        log.info("Blocklist loaded: %d users", len(_blocklist_cache))
-    
-    except Exception as e:
-        log.warning("blocklist load failed: %s", e)
-        _blocklist_cache = {}
-        _blocklist_mtime_ns = st.st_mtime_ns
-    return _blocklist_cache
-
-def _get_user_block_message(user_id: int | str) -> str | None:
-    """
-    ブロックされていればメッセージを返す
-    """
-    bl = _load_user_blocklist()
-    return bl.get(str(user_id))
 
 
 async def _notify_dev_about_block(reason: str, interaction: discord.Interaction) -> None:
@@ -192,55 +150,121 @@ async def _notify_dev_about_block(reason: str, interaction: discord.Interaction)
 
 
 # ====== スラッシュ用チェックの実装（トップレベルに一つだけ配置） ======
-async def _slash_server_check_impl(interaction: discord.Interaction) -> bool:
-    log.debug("slash_server_check called: guild=%s id=%s user=%s cmd=%s",
-              getattr(interaction.guild, "name", None),
-              getattr(interaction.guild, "id", None),
-              getattr(interaction.user, "id", None),
-              getattr(getattr(interaction, "command", None), "qualified_name", None))
-
-    # 1) ユーザー単位ブロック
-    user_id = getattr(interaction.user, "id", None)
-    if user_id is not None:
-        block_msg = _get_user_block_message(user_id)
-        if block_msg:
-            asyncio.create_task(_notify_dev_about_block("user_blocked", interaction))
-            
-            try:
-                embed = Embed(color=0xE74C3C, description=f"{block_msg}")
-                await interaction.response.send_message(embed=embed, ephemeral=False)
-            
-            except Exception:
-                log.debug("Failed to respond for user-blocked case", exc_info=True)
-            log.info("Blocked (user): user_id=%s name=%s", user_id, getattr(interaction.user, "display_name", None))
-            
-            return False
-
-    # 2) DM不可
+async def _slash_server_check_impl(
+    interaction: discord.Interaction
+) -> bool:
     guild = interaction.guild
+    user = interaction.user
+
     guild_id = getattr(guild, "id", None)
     guild_name = getattr(guild, "name", "(DMまたは不明)")
-    user = interaction.user
+    user_id = getattr(user, "id", None)
     user_name = getattr(user, "display_name", "不明")
 
+    log.debug(
+        "slash_server_check called: guild=%s id=%s user=%s cmd=%s",
+        guild_name,
+        guild_id,
+        user_id,
+        getattr(
+            getattr(interaction, "command", None),
+            "qualified_name",
+            None,
+        ),
+    )
+
+    # 1) ユーザー単位ブロック
+    block_info = (
+        user_repository.get_block(user_id)
+        if user_id is not None
+        else None
+    )
+    
+    if block_info is not None:
+        user_message = (
+            block_info["user_message"]
+            or "このアカウントでは現在Botを利用できません。詳細は運営までお問い合わせください。"
+        )
+
+        reason = (
+            block_info["reason"]
+            or "テスト用ブロック"
+        )
+
+        asyncio.create_task(
+            _notify_dev_about_block(
+                "user_blocked", 
+                interaction
+            )
+        )
+        
+        try:
+            embed = Embed(
+                color=0xE74C3C, 
+                description=user_message
+            )
+            await interaction.response.send_message(
+                embed=embed, 
+                ephemeral=False
+            )
+        
+        except Exception:
+            log.debug(
+                "Failed to respond for user-blocked case", 
+                exc_info=True
+            )
+
+        log.info(
+            "Blocked (user): user_id=%s name=%s reason=%s", 
+            user_id, 
+            getattr(interaction.user, "display_name", None),
+            reason,
+        )
+        
+        return False
+
+    # 2) DM不可
     if guild_id is None:
-        asyncio.create_task(_notify_dev_about_block("dm", interaction))
+        asyncio.create_task(
+            _notify_dev_about_block(
+                "dm",
+                interaction,
+            )
+        )
+
         try:
             embed = Embed(
                 color=0xFF9900,
-                description="### このコマンドはサーバー内でのみ使用できます"
+                description=(
+                    "### このコマンドは"
+                    "サーバー内でのみ使用できます"
+                ),
             )
             await interaction.response.send_message(
                 embed=embed,
-                ephemeral=False
+                ephemeral=False,
             )
+
         except Exception:
-            log.debug("Failed to respond (already responded) for DM-case", exc_info=True)
+            log.debug(
+                "Failed to respond for DM-case",
+                exc_info=True,
+            )
+
         return False
 
+    # DMでないことを確認してからDBを参照
+    guild_info = guild_repository.get_by_guild_id(guild_id)
+
     # 3) 未登録
-    if not await registry.is_registered(guild_id):
-        log.info("Blocked: unregistered guild %s(%s) user %s (%s)", guild_name, guild_id, user_name, user)
+    if guild_info is None:
+        log.info(
+            "Blocked: unregistered guild %s(%s) user %s (%s)", 
+            guild_name, 
+            guild_id, 
+            user_name, 
+            user
+        )
 
         # 開発者へ非同期で通知
         asyncio.create_task(_notify_dev_about_block("unregistered", interaction))
@@ -259,21 +283,40 @@ async def _slash_server_check_impl(interaction: discord.Interaction) -> bool:
         return False
 
     # 4) revoked（停止中）
-    if await registry.is_revoked(guild_id):
-        log.info("Blocked: revoked guild %s(%s)", guild_name, guild_id)
-        asyncio.create_task(_notify_dev_about_block("revoked", interaction))
+    if not guild_info["enabled"]:
+        log.info(
+            "Blocked: revoked guild %s(%s)",
+            guild_name,
+            guild_id,
+        )
+
+        asyncio.create_task(
+            _notify_dev_about_block(
+                "revoked",
+                interaction,
+            )
+        )
 
         try:
             embed = Embed(
                 color=0xE53935,
-                description="### 🚫 このサーバーでは現在Botの利用が停止されています。運営までお問い合わせください。"
+                description=(
+                    "### 🚫 このサーバーでは現在"
+                    "Botの利用が停止されています。"
+                    "運営までお問い合わせください。"
+                ),
             )
             await interaction.response.send_message(
                 embed=embed,
-                ephemeral=False
+                ephemeral=False,
             )
+
         except Exception:
-            log.debug("Failed to respond for revoked case (already responded?)", exc_info=True)
+            log.debug(
+                "Failed to respond for revoked case",
+                exc_info=True,
+            )
+
         return False
 
     # 5) 許可

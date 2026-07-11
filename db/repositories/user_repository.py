@@ -49,7 +49,7 @@ class UserRepository:
 
     def get_by_user_id(self, user_id: int) -> Optional[sqlite3.Row]:
         """
-        user_id からユーザー情報を取得する。
+        user_idからユーザー情報を取得する。
         """
         cursor = self.connection.execute(
             """
@@ -66,14 +66,17 @@ class UserRepository:
         return cursor.fetchone()
 
     def add_block(
-        self, 
-        user_id: int, 
-        reason: Optional[str], 
-        blocked_by: int,
+        self,
+        user_id: int,
+        reason: Optional[str] = None,
+        user_message: Optional[str] = None,
+        blocked_by: Optional[int] = None,
     ) -> None:
         """
         ユーザーのコマンド実行を無効化する。
-        既にブロックされている場合は、ブロック情報を更新する。
+
+        既にブロックされている場合は、
+        reason、user_message、blocked_at、blocked_byを更新する。
         """
         now = datetime.now(timezone.utc).isoformat()
 
@@ -82,19 +85,22 @@ class UserRepository:
             INSERT INTO blocked_users (
                 user_id,
                 reason,
+                user_message,
                 blocked_at,
                 blocked_by
             )
-            VALUES (?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(user_id)
             DO UPDATE SET
                 reason = excluded.reason,
+                user_message = excluded.user_message,
                 blocked_at = excluded.blocked_at,
                 blocked_by = excluded.blocked_by;
             """,
             (
                 user_id,
                 reason,
+                user_message,
                 now,
                 blocked_by,
             ),
@@ -102,7 +108,7 @@ class UserRepository:
 
     def remove_block(self, user_id: int) -> None:
         """
-        ユーザーのコマンド実行制限を解除する
+        ユーザーのコマンド実行制限を解除する。
         """
         self.connection.execute(
             """
@@ -114,7 +120,7 @@ class UserRepository:
 
     def is_blocked(self, user_id: int) -> bool:
         """
-        ユーザーがブロックされているか確認する
+        ユーザーがブロックされているか確認する。
         """
         cursor = self.connection.execute(
             """
@@ -127,3 +133,25 @@ class UserRepository:
         )
 
         return cursor.fetchone() is not None
+
+    def get_block(self, user_id: int) -> Optional[sqlite3.Row]:
+        """
+        user_idからブロック情報を取得する。
+
+        ブロックされていない場合はNoneを返す。
+        """
+        cursor = self.connection.execute(
+            """
+            SELECT
+                user_id,
+                reason,
+                user_message,
+                blocked_at,
+                blocked_by
+            FROM blocked_users
+            WHERE user_id = ?;
+            """,
+            (user_id,),
+        )
+
+        return cursor.fetchone()

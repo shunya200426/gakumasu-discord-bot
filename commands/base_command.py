@@ -192,23 +192,6 @@ class BaseCommand(ABC):
             # 保存失敗はコマンドの成否に影響させない
             logger.warning(f"バックグラウンド保存に失敗: {e}")
 
-    # ====== ここから：利用停止（剥奪）ロジック（Base に集約） ======
-    _BLOCKLIST_PATH = Path("config/blocklist.json")  # 例 {"user_ids": ["123", "456"]}
-
-    @classmethod
-    def _load_blocklist(cls) -> set[str]:
-        try:
-            data = json.loads(cls._BLOCKLIST_PATH.read_text(encoding="utf-8"))
-            return {str(u) for u in data.get("user_ids", [])}
-        except FileNotFoundError:
-            return set()
-        except Exception as e:
-            logger.warning("blocklist load failed: %s", e)
-            return set()
-
-    def _is_blocked(self) -> bool:
-        return str(self.interaction.user.id) in self._load_blocklist()
-
 
     # ====== サブクラスの execute() を自動でラップする ======
     def __init_subclass__(cls, **kwargs):
