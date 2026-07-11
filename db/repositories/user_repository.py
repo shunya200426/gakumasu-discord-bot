@@ -7,7 +7,7 @@ from typing import Optional
 
 class UserRepository:
     """
-    users テーブルを操作するRepository。
+    users テーブルと blocked_users テーブルを操作するRepository。
     """
 
     def __init__(self, connection: sqlite3.Connection) -> None:
@@ -63,5 +63,67 @@ class UserRepository:
             """,
             (user_id,),
         )
-
         return cursor.fetchone()
+
+    def add_block(
+        self, 
+        user_id: int, 
+        reason: Optional[str], 
+        blocked_by: int,
+    ) -> None:
+        """
+        ユーザーのコマンド実行を無効化する。
+        既にブロックされている場合は、ブロック情報を更新する。
+        """
+        now = datetime.now(timezone.utc).isoformat()
+
+        self.connection.execute(
+            """
+            INSERT INTO blocked_users (
+                user_id,
+                reason,
+                blocked_at,
+                blocked_by
+            )
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(user_id)
+            DO UPDATE SET
+                reason = excluded.reason,
+                blocked_at = excluded.blocked_at,
+                blocked_by = excluded.blocked_by;
+            """,
+            (
+                user_id,
+                reason,
+                now,
+                blocked_by,
+            ),
+        )
+
+    def remove_block(self, user_id: int) -> None:
+        """
+        ユーザーのコマンド実行制限を解除する
+        """
+        self.connection.execute(
+            """
+            DELETE FROM blocked_users
+            WHERE user_id = ?;
+            """,
+            (user_id,),
+        )
+
+    def is_blocked(self, user_id: int) -> bool:
+        """
+        ユーザーがブロックされているか確認する
+        """
+        cursor = self.connection.execute(
+            """
+            SELECT 1
+            FROM blocked_users
+            WHERE user_id = ?
+            LIMIT 1;
+            """,
+            (user_id,),
+        )
+
+        return cursor.fetchone() is not None

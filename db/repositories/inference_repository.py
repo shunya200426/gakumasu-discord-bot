@@ -233,3 +233,39 @@ class InferenceRepository:
         )
 
         return cursor.fetchall()
+    
+    def get_statistics(self) -> sqlite3.Row:
+        """
+        推論ログと検出結果の統計情報を取得する。
+        """
+        cursor = self.connection.execute(
+            """
+            SELECT
+                COUNT(*) AS total_inferences,
+                SUM(
+                    CASE
+                        WHEN status = 'SUCCESS' THEN 1
+                        ELSE 0
+                    END
+                ) AS successful_inferences,
+                SUM(
+                    CASE
+                        WHEN status != 'SUCCESS' THEN 1
+                        ELSE 0
+                    END
+                ) AS failed_inferences,
+                AVG(preprocess_ms) AS average_preprocess_ms,
+                AVG(inference_ms) AS average_inference_ms,
+                AVG(postprocess_ms) AS average_postprocess_ms,
+                AVG(total_ms) AS average_total_ms,
+                MIN(total_ms) AS minimum_total_ms,
+                MAX(total_ms) AS maximum_total_ms,
+                (
+                    SELECT COUNT(*)
+                    FROM detection_results
+                ) AS total_detections
+            FROM inference_logs;
+            """
+        )
+
+        return cursor.fetchone()
