@@ -1,29 +1,37 @@
+# Standard library
+import asyncio
+import importlib
 import os
+import time
 import traceback
-from dotenv import load_dotenv
+import zoneinfo
+from datetime import datetime
+from typing import Hashable
+
+# Third-party
 import discord
 from discord import Embed, ui
 from discord.ext import commands
-import asyncio
-import importlib
+from dotenv import load_dotenv
+
+# Local application
 from commands.groups import gkms
-import time
-from typing import Hashable
-from datetime import datetime
-import zoneinfo
+from config.paths import YOLO_MODEL_PATH
 from db.database import DatabaseManager
-from utils.logger import (
-    setup_logging, 
-    get_logger, 
-    use_log_context
-)
+from inference.yolo_detector import YoloDetector
+from ocr.tesseract_engine import TesseractEngine
+from services.inference_service import InferenceService
+from services.ocr_service import OcrService
 from utils.context import (
     build_ctx_from_interaction,
     configure_context_repository,
 )
-from config.paths import YOLO_MODEL_PATH
-from inference.yolo_detector import YoloDetector
-from ocr.tesseract_engine import TesseractEngine
+from utils.logger import (
+    get_logger,
+    setup_logging,
+    use_log_context,
+)
+
 
 # ====== 起動前準備 ======
 load_dotenv()
@@ -80,8 +88,8 @@ class GakumasuBot(commands.Bot):
         # 後で setup_hook() で初期化する
         self.detector: YoloDetector | None = None
         self.tesseract_engine: TesseractEngine | None = None
-        self.ocr_service = None
-        self.inference_service = None
+        self.ocr_service: OcrService | None = None
+        self.inference_service: InferenceService | None = None
 
     async def setup_hook(self) -> None:
         try:
@@ -113,6 +121,21 @@ class GakumasuBot(commands.Bot):
             self.tesseract_engine = TesseractEngine(
                 tessdata_path=TESSDATA_PATH,
             )
+
+            # OcrService初期化
+            log.info("Initializing OCR service...")
+            self.ocr_service = OcrService(
+                engine=self.tesseract_engine,
+            )
+            log.info("OCR service initialized.")
+
+            # InferenceService初期化
+            log.info("Initializing inference service...")
+            self.inference_service = InferenceService(
+                detector=self.detector,
+                ocr_service=self.ocr_service,
+            )
+            log.info("Inference service initialized.")
 
             # ====== スラッシュコマンド登録 ======
             for module_name in MODULES:
