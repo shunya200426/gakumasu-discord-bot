@@ -1,8 +1,10 @@
 # ocr/ocr.py
+import re
+
 import cv2
 import numpy as np
-import re
 import pytesseract
+
 from utils.logger import get_logger
 
 logger = get_logger()

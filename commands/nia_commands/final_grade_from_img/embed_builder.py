@@ -1,7 +1,5 @@
 # final_grade_from_img/embed_builder.py
 from discord import Embed
-from config.character_settings import CHARACTERS
-from config.nia_settings import NIA
 
 
 def _fmt_num(v):
