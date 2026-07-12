@@ -17,6 +17,8 @@ from utils.context import (
     build_ctx_from_interaction,
     configure_context_repository,
 )
+from config.paths import YOLO_MODEL_PATH
+from inference.yolo_detector import YoloDetector
 
 # ====== 起動前準備 ======
 load_dotenv()
@@ -70,11 +72,32 @@ class GakumasuBot(commands.Bot):
         )
 
         # 後で setup_hook() で初期化する
+        self.detector: YoloDetector | None = None
+        self.tesseract_engine = None
+        self.ocr_service = None
         self.inference_service = None
 
     async def setup_hook(self) -> None:
         try:
-            # 各ui.pyを読み込み、デコレータを実行する
+            # ====== 推論基盤の初期化 ======
+            log.info("Initializing YOLO detector...")
+
+            self.detector = YoloDetector(
+                model_path=YOLO_MODEL_PATH,
+                confidence_threshold=0.25,
+                image_size=(640, 640),
+                device=None,
+            )
+
+            log.info(
+                "YOLO detector initialized: "
+                "model=%s format=%s classes=%d",
+                self.detector.model_name,
+                self.detector.model_format,
+                len(self.detector.class_names),
+            )
+
+            # ====== スラッシュコマンド登録 ======
             for module_name in MODULES:
                 importlib.import_module(module_name)
             
