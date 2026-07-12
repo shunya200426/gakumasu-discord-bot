@@ -12,17 +12,23 @@ from typing import Hashable
 from datetime import datetime
 import zoneinfo
 from db.database import DatabaseManager
-from utils.logger import setup_logging, get_logger, use_log_context
+from utils.logger import (
+    setup_logging, 
+    get_logger, 
+    use_log_context
+)
 from utils.context import (
     build_ctx_from_interaction,
     configure_context_repository,
 )
 from config.paths import YOLO_MODEL_PATH
 from inference.yolo_detector import YoloDetector
+from ocr.tesseract_engine import TesseractEngine
 
 # ====== 起動前準備 ======
 load_dotenv()
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+TESSDATA_PATH = os.getenv("TESSDATA_PATH")
 SYNC_MODE = os.getenv("SYNC_MODE", "global").lower()
 TEST_GUILD_ID = os.getenv("TEST_GUILD_ID")
 DEV_USER_ID = int(os.getenv("DEV_USER_ID", "0") or 0)
@@ -73,7 +79,7 @@ class GakumasuBot(commands.Bot):
 
         # 後で setup_hook() で初期化する
         self.detector: YoloDetector | None = None
-        self.tesseract_engine = None
+        self.tesseract_engine: TesseractEngine | None = None
         self.ocr_service = None
         self.inference_service = None
 
@@ -97,11 +103,16 @@ class GakumasuBot(commands.Bot):
                 len(self.detector.class_names),
             )
 
+            # YOLOモデルのウォームアップ
             log.info("Running YOLO warmup...")
-
             self.detector.warmup()
-
             log.info("YOLO warmup completed.")
+
+            # TesseractEngine初期化
+            log.info("Initializing Tesseract engine...")
+            self.tesseract_engine = TesseractEngine(
+                tessdata_path=TESSDATA_PATH,
+            )
 
             # ====== スラッシュコマンド登録 ======
             for module_name in MODULES:
