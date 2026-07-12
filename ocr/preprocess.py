@@ -72,24 +72,50 @@ def preprocess_percentage(
     image: np.ndarray,
     *,
     scale: float = DEFAULT_SCALE,
+    left_trim_ratio: float = 0.25,
 ) -> np.ndarray:
     """
     小数・パーセントOCR向けの前処理を行う。
 
-    現時点では整数OCRと同じ前処理を使用する。
-    ボーナス値で精度差が見られた場合、この関数だけを調整する。
+    左側に含まれる属性アイコンを除去した後、
+    拡大と大津の二値化を適用する。
 
     Args:
         image:
             OpenCV形式の入力画像。
         scale:
             拡大倍率。
-
-    Returns:
-        前処理済みの1チャンネル二値画像。
+        left_trim_ratio:
+            画像左側から除去する幅の割合。
     """
+    _validate_image(image)
+    _validate_scale(scale)
+
+    if not isinstance(left_trim_ratio, int | float):
+        raise TypeError(
+            "left_trim_ratio must be int or float: "
+            f"{type(left_trim_ratio).__name__}"
+        )
+
+    if not 0.0 <= left_trim_ratio < 1.0:
+        raise ValueError(
+            "left_trim_ratio must be between 0.0 and 1.0: "
+            f"{left_trim_ratio}"
+        )
+
+    width = image.shape[1]
+    trim_x = int(round(width * left_trim_ratio))
+
+    trimmed = image[:, trim_x:]
+
+    if trimmed.size == 0:
+        raise ValueError(
+            "percentage image became empty after trimming: "
+            f"width={width}, left_trim_ratio={left_trim_ratio}"
+        )
+
     return preprocess_digits(
-        image,
+        trimmed,
         scale=scale,
     )
 

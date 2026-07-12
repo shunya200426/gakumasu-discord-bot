@@ -76,6 +76,7 @@ class OcrService:
         cropped_by_class: CroppedImages,
         *,
         maximum: int,
+        star_maximum: int | None = None,
     ) -> ParameterOcrResult:
         """
         Vo・Da・Viパラメータとファン数を読み取る。
@@ -85,6 +86,9 @@ class OcrService:
                 クラス名ごとに整理された切り抜き画像。
             maximum:
                 Vo・Da・Viパラメータの最大値。
+            star_maximum:
+                スター性の最大値。
+                Noneの場合は上限を設定しない。
 
         Returns:
             読み取り結果。
@@ -92,6 +96,9 @@ class OcrService:
         """
         self._validate_cropped_images(cropped_by_class)
         self._validate_maximum(maximum)
+
+        if star_maximum is not None:
+            self._validate_maximum(star_maximum)
 
         vo = self._read_parameter(
             cropped_by_class,
@@ -115,7 +122,7 @@ class OcrService:
         star = self._read_parameter(
             cropped_by_class,
             class_name="star_param",
-            maximum=maximum,
+            maximum=star_maximum,
         )
 
         result = ParameterOcrResult(
@@ -127,7 +134,8 @@ class OcrService:
         )
 
         logger.debug(
-            "Parameter OCR completed: vo=%s da=%s vi=%s fans=%s",
+            "Parameter OCR completed: "
+            "vo=%s da=%s vi=%s fans=%s star=%s",
             result.vo,
             result.da,
             result.vi,

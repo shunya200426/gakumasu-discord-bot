@@ -297,6 +297,7 @@ class InferenceResult:
     def is_complete(
         self,
         *,
+        require_star: bool = False,
         require_kirameki: bool = False,
     ) -> bool:
         """
@@ -307,7 +308,9 @@ class InferenceResult:
                 Trueの場合、きらめきも必須項目として判定する。
         """
         return (
-            self.parameters.is_complete
+            self.parameters.is_complete(
+                require_star=require_star,
+            )
             and self.bonuses.is_complete(
                 require_kirameki=require_kirameki,
             )
@@ -317,6 +320,7 @@ class InferenceResult:
     def missing_fields(
         self,
         *,
+        require_star: bool = False,
         require_kirameki: bool = False,
     ) -> tuple[str, ...]:
         """
@@ -334,7 +338,9 @@ class InferenceResult:
 
         missing.extend(
             f"parameters.{name}"
-            for name in self.parameters.missing_fields
+            for name in self.parameters.missing_fields(
+                require_star=require_star,
+            )
         )
 
         missing.extend(
