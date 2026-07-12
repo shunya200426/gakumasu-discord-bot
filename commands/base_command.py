@@ -1,183 +1,474 @@
-from abc import ABC, abstractmethod
-from discord import Interaction, Embed, ui
-from utils.logger import get_logger, use_log_context
-from utils.context import build_ctx_from_interaction
-from contextlib import asynccontextmanager
-import asyncio, os, json, hashlib
+import asyncio
+import hashlib
+import json
+import os
+import shutil
 import uuid
-from pathlib import Path
-from datetime import datetime, timedelta, timezone
 import zoneinfo
+from abc import ABC, abstractmethod
+from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
 
+import discord
+from discord import Embed, Interaction, ui
 
-DATASET_ROOT = Path("data_inputs")  # 例: プロジェクト直下 data_inputs/
+from config.paths import PROVIDED_UPLOAD_DIR
+from utils.context import build_ctx_from_interaction
+from utils.logger import get_logger, use_log_context
+
 KEEP_DAYS = 30
+MAX_IMAGE_BYTES = 10 * 1024 * 1024
+
 UTC = timezone.utc
 JST = zoneinfo.ZoneInfo("Asia/Tokyo")
 
+logger = get_logger()
 
-def _utc_now_str(fmt="%Y%m%dT%H%M%S.%fZ"):
+
+def _utc_now_str(
+    fmt: str = "%Y%m%dT%H%M%S.%fZ",
+) -> str:
+    """現在のUTC時刻を指定形式で返す。"""
     return datetime.now(UTC).strftime(fmt)
 
-# ログと揃えるためのローカル（JST）時刻フォーマッタ
-def _local_now_str(fmt="%Y%m%dT%H%M%S"):
+
+def _local_now_str(
+    fmt: str = "%Y%m%dT%H%M%S",
+) -> str:
+    """現在のJST時刻を指定形式で返す。"""
     return datetime.now(JST).strftime(fmt)
 
-def _today_str():
-    # ログ（JST）に合わせてフォルダ日付もJSTで切る
+
+def _today_str() -> str:
+    """現在のJST日付をディレクトリ名用の形式で返す。"""
     return datetime.now(JST).strftime("%Y-%m-%d")
 
-def _short_hash(b: bytes, n: int = 8) -> str:
-    return hashlib.sha256(b).hexdigest()[:n]
 
-def _safe_ext(filename: str) -> str:
-    ext = os.path.splitext(filename or "")[1].lower()
-    return ext if ext in {".png", ".jpg", ".jpeg", ".webp"} else (ext or ".bin")
+def _short_hash(
+    data: bytes,
+    length: int = 8,
+) -> str:
+    """バイト列のSHA-256ハッシュを短縮して返す。"""
+    return hashlib.sha256(data).hexdigest()[:length]
 
-logger = get_logger()
+
+def _safe_ext(
+    filename: str,
+) -> str:
+    """
+    保存を許可する画像拡張子を返す。
+
+    許可外、または拡張子なしの場合は.binを返す。
+    """
+    extension = os.path.splitext(filename or "")[1].lower()
+
+    if extension in {
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".webp",
+    }:
+        return extension
+
+    return ".bin"
+
 
 class BaseCommand(ABC):
     """
-    全コマンド共通の基底クラス
+    全コマンド共通の基底クラス。
     """
 
-    def __init__(self, interaction: Interaction):
+    def __init__(
+        self,
+        interaction: Interaction,
+    ) -> None:
         self.interaction = interaction
         self.embed = self._init_embed()
         self._request_id: str | None = None
-    
+
     def _init_embed(self) -> Embed:
+        """共通のEmbedを初期化する。"""
         return Embed(color=0x5DADE2)
 
-    def log_command_start(self, command_name: str):
-        logger.info(f"コマンド実行開始: {command_name}")
+    def log_command_start(
+        self,
+        command_name: str,
+    ) -> None:
+        """コマンド開始ログを記録する。"""
+        logger.info(
+            "コマンド実行開始: %s",
+            command_name,
+        )
 
-    def log_command_end(self, command_name: str):
-        logger.info(f"コマンド実行完了: {command_name}")
+    def log_command_end(
+        self,
+        command_name: str,
+    ) -> None:
+        """コマンド終了ログを記録する。"""
+        logger.info(
+            "コマンド実行完了: %s",
+            command_name,
+        )
 
-    # --- 再計算用の共通ログ ---
-    def log_recompute_start(self, command_name: str):
-        logger.info(f"再計算実行開始: {command_name}")
+    def log_recompute_start(
+        self,
+        command_name: str,
+    ) -> None:
+        """再計算開始ログを記録する。"""
+        logger.info(
+            "再計算実行開始: %s",
+            command_name,
+        )
 
-    def log_recompute_end(self, command_name: str):
-        logger.info(f"再計算実行完了: {command_name}")
+    def log_recompute_end(
+        self,
+        command_name: str,
+    ) -> None:
+        """再計算終了ログを記録する。"""
+        logger.info(
+            "再計算実行完了: %s",
+            command_name,
+        )
 
-    # --- 任意の Interaction 区間に ctx を張るためのヘルパ ---
-    @asynccontextmanager
-    async def scoped_ctx(self, interaction):
+    async def read_image_attachment(
+        self,
+        attachment: discord.Attachment | None,
+        *,
+        label: str,
+        required: bool = True,
+        max_bytes: int = MAX_IMAGE_BYTES,
+    ) -> bytes | None:
         """
-        再計算（モーダル/ボタン/メニュー）など execute() 以外の入口でも
-        INFO/ERROR に guild/user/circle を自動付与できるようにする。
+        Discordの画像添付を検証し、バイト列として読み込む。
+
+        Args:
+            attachment:
+                読み込むDiscord添付ファイル。
+            label:
+                エラーメッセージに表示する画像の名称。
+            required:
+                Trueの場合、添付がない場合にValueErrorを送出する。
+                Falseの場合、添付がなければNoneを返す。
+            max_bytes:
+                読み込みを許可する最大ファイルサイズ。
+
+        Returns:
+            添付画像のバイト列。
+            required=Falseかつ添付がない場合はNone。
+
+        Raises:
+            ValueError:
+                必須画像が未添付、画像以外、サイズ超過、
+                または空データの場合。
+        """
+        if max_bytes <= 0:
+            raise ValueError(
+                "max_bytes must be greater than 0"
+            )
+
+        if attachment is None:
+            if required:
+                raise ValueError(
+                    f"{label}を添付してください。"
+                )
+
+            return None
+
+        content_type = attachment.content_type
+
+        if (
+            content_type is None
+            or not content_type.startswith("image/")
+        ):
+            raise ValueError(
+                f"{label}には画像ファイルを指定してください。"
+            )
+
+        if attachment.size > max_bytes:
+            max_megabytes = max_bytes / (1024 * 1024)
+
+            raise ValueError(
+                f"{label}のファイルサイズが大きすぎます。"
+                f"{max_megabytes:.0f}MB以下の画像を指定してください。"
+            )
+
+        image_bytes = await attachment.read()
+
+        if not image_bytes:
+            raise ValueError(
+                f"{label}の画像データが空です。"
+            )
+
+        return image_bytes
+
+    @asynccontextmanager
+    async def scoped_ctx(
+        self,
+        interaction: Interaction,
+    ):
+        """
+        任意のInteraction区間へログコンテキストを適用する。
+
+        再計算、Modal、Button、Selectなど、
+        execute()以外の入口で使用する。
         """
         try:
-            ctx = await build_ctx_from_interaction(interaction)
+            ctx = await build_ctx_from_interaction(
+                interaction
+            )
         except Exception:
             ctx = {}
-        # 既に発行済みの request_id をマージ（再計算など別Interactionでも同一IDで追える）
+
         if self._request_id:
-            ctx = {"request_id": self._request_id, **ctx}
+            ctx = {
+                "request_id": self._request_id,
+                **ctx,
+            }
+
         with use_log_context(ctx):
             yield
 
-    async def send_embed(self):
-        """
-        EmbedメッセージをDiscordに送信
-        """
-        await self._safe_send(embed=self.embed)
+    async def send_embed(self) -> None:
+        """EmbedメッセージをDiscordへ送信する。"""
+        await self._safe_send(
+            embed=self.embed
+        )
 
-
-    # --- 一度だけ安全に送る共通関数 ---
-    async def _safe_send(self, *, content: str | None = None, embed: Embed | None = None, 
-                         view: ui.View | None = None, ephemeral: bool = False):
+    async def _safe_send(
+        self,
+        *,
+        content: str | None = None,
+        embed: Embed | None = None,
+        view: ui.View | None = None,
+        ephemeral: bool = False,
+    ) -> None:
+        """
+        Interactionの応答状態に応じてメッセージを送信する。
+        """
         try:
-            if getattr(self.interaction.response, "is_done", lambda: False)():
-                await self.interaction.followup.send(content=content, embed=embed, view=view, ephemeral=ephemeral)
+            if self.interaction.response.is_done():
+                await self.interaction.followup.send(
+                    content=content,
+                    embed=embed,
+                    view=view,
+                    ephemeral=ephemeral,
+                )
             else:
-                await self.interaction.response.send_message(content=content, embed=embed, view=view, ephemeral=ephemeral)
-        except Exception as e:
-            logger.warning("send failed: %s", e)
+                await self.interaction.response.send_message(
+                    content=content,
+                    embed=embed,
+                    view=view,
+                    ephemeral=ephemeral,
+                )
 
-    # BaseCommand クラスの中に追記
-    # ===== 画像保存（共通） =====
-    @staticmethod
-    def _purge_old_days():
-        cutoff = datetime.now(JST) - timedelta(days=KEEP_DAYS)
-        if DATASET_ROOT.exists():
-            for sub in DATASET_ROOT.iterdir():
-                if not sub.is_dir():
-                    continue
-                try:
-                    dt = datetime.strptime(sub.name, "%Y-%m-%d").replace(tzinfo=JST)
-                except ValueError:
-                    continue
-                if dt < cutoff:
-                    import shutil
-                    shutil.rmtree(sub, ignore_errors=True)
+        except Exception:
+            logger.warning(
+                "send failed",
+                exc_info=True,
+            )
 
     @staticmethod
-    def _archive_sync(*, guild_id: int, user_id: int, command: str,
-                      images: dict[str, tuple[str, bytes]], meta: dict,
-                      request_id: str | None = None):
+    def _purge_old_days() -> None:
         """
-        images: {"schedule": (filename, bytes), "party": (...), "score": (...)} のような任意集合
-        meta  : JSONL に追記する任意メタ（dict）
+        保存期間を超過した提供画像ディレクトリを削除する。
         """
-        day_dir = DATASET_ROOT / _today_str() / str(guild_id) / str(user_id)
-        day_dir.mkdir(parents=True, exist_ok=True)
+        cutoff = datetime.now(JST) - timedelta(
+            days=KEEP_DAYS
+        )
 
-        ts = _local_now_str()
-        saved_names = {}
+        if not PROVIDED_UPLOAD_DIR.exists():
+            return
 
-        for key, (fname, blob) in images.items():
-            ext = _safe_ext(fname)
-            rid = request_id or _short_hash(blob)
-            path = day_dir / f"{ts}_{rid}_{key}{ext}"
-            with open(path, "wb") as f:
-                f.write(blob)
-            saved_names[f"{key}_file"] = path.name  # 例: "schedule_file": "...png"
+        for directory in PROVIDED_UPLOAD_DIR.iterdir():
+            if not directory.is_dir():
+                continue
+
+            try:
+                directory_date = datetime.strptime(
+                    directory.name,
+                    "%Y-%m-%d",
+                ).replace(
+                    tzinfo=JST
+                )
+
+            except ValueError:
+                continue
+
+            if directory_date < cutoff:
+                shutil.rmtree(
+                    directory,
+                    ignore_errors=True,
+                )
+
+                logger.info(
+                    "Old archive directory removed: %s",
+                    directory,
+                )
+
+    @staticmethod
+    def _archive_sync(
+        *,
+        guild_id: int,
+        user_id: int,
+        command: str,
+        images: dict[str, tuple[str, bytes]],
+        meta: dict,
+        request_id: str | None = None,
+    ) -> None:
+        """
+        同意済みの入力画像とメタデータを同期的に保存する。
+
+        Args:
+            guild_id:
+                DiscordサーバーID。
+            user_id:
+                DiscordユーザーID。
+            command:
+                実行されたコマンド名。
+            images:
+                画像種別をキーとし、
+                ファイル名とバイト列を保持する辞書。
+            meta:
+                JSONLへ追加する任意メタデータ。
+            request_id:
+                コマンド実行単位の相関ID。
+        """
+        day_dir = (
+            PROVIDED_UPLOAD_DIR
+            / _today_str()
+            / str(guild_id)
+            / str(user_id)
+        )
+
+        day_dir.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        timestamp = _local_now_str()
+        saved_names: dict[str, str] = {}
+
+        for key, (
+            filename,
+            image_bytes,
+        ) in images.items():
+            if not image_bytes:
+                logger.warning(
+                    "Empty archive image skipped: key=%s",
+                    key,
+                )
+                continue
+
+            extension = _safe_ext(filename)
+
+            image_id = (
+                request_id
+                or _short_hash(image_bytes)
+            )
+
+            image_path = (
+                day_dir
+                / (
+                    f"{timestamp}_"
+                    f"{image_id}_"
+                    f"{key}"
+                    f"{extension}"
+                )
+            )
+
+            with image_path.open("wb") as file:
+                file.write(image_bytes)
+
+            saved_names[f"{key}_file"] = (
+                image_path.name
+            )
 
         record = {
-            "ts_local": datetime.now(JST).isoformat(timespec="seconds"),
-            "ts_utc": _utc_now_str("%Y-%m-%dT%H:%M:%SZ"),
+            "ts_local": datetime.now(JST).isoformat(
+                timespec="seconds"
+            ),
+            "ts_utc": _utc_now_str(
+                "%Y-%m-%dT%H:%M:%SZ"
+            ),
             "guild_id": guild_id,
             "user_id": user_id,
             "command": command,
+            "request_id": request_id,
             "keep_policy": f"{KEEP_DAYS}days",
             **saved_names,
             **meta,
         }
-        with open(day_dir / "metadata.jsonl", "a", encoding="utf-8") as f:
-            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+        metadata_path = (
+            day_dir
+            / "metadata.jsonl"
+        )
+
+        with metadata_path.open(
+            "a",
+            encoding="utf-8",
+        ) as file:
+            file.write(
+                json.dumps(
+                    record,
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
 
         BaseCommand._purge_old_days()
 
-        try:
-            logger.info("archive saved: %s", str(day_dir))
-        except Exception:
-            pass
+        logger.info(
+            "Archive saved: directory=%s images=%d",
+            day_dir,
+            len(saved_names),
+        )
 
     @staticmethod
-    async def _archive_async(**kwargs):
-        # 同期I/Oをスレッドプールへ
-        await asyncio.to_thread(BaseCommand._archive_sync, **kwargs)
-
-    async def maybe_archive_inputs(self, *,
-                                   interaction,
-                                   save_agree: bool,
-                                   command: str,
-                                   images: dict[str, tuple[str, bytes]],
-                                   meta: dict,
-                                   thank_you: str = "ご協力ありがとうございます！精度向上のため入力画像を保存します。保存期間は30日で自動的に破棄します。"):
+    async def _archive_async(
+        **kwargs,
+    ) -> None:
         """
-        送信“後”に呼ぶ想定。save_agree が True のときだけ保存・お礼を実施。
+        同期的な画像保存処理を別スレッドで実行する。
+        """
+        await asyncio.to_thread(
+            BaseCommand._archive_sync,
+            **kwargs,
+        )
+
+    async def maybe_archive_inputs(
+        self,
+        *,
+        interaction: Interaction,
+        save_agree: bool,
+        command: str,
+        images: dict[str, tuple[str, bytes]],
+        meta: dict,
+        thank_you: str = (
+            "ご協力ありがとうございます！"
+            "精度向上のため入力画像を保存します。"
+            "保存期間は30日で自動的に破棄します。"
+        ),
+    ) -> None:
+        """
+        ユーザーが同意した場合のみ入力画像を保存する。
+
+        画像保存の失敗は、コマンド本体の成否には影響させない。
         """
         if not save_agree:
             return
+
         try:
-            await interaction.followup.send(thank_you, ephemeral=True)
+            await interaction.followup.send(
+                thank_you,
+                ephemeral=True,
+            )
+
         except Exception:
-            # followup が使えない状況でも保存だけは走らせる
-            pass
+            logger.debug(
+                "Failed to send archive thank-you message",
+                exc_info=True,
+            )
 
         try:
             await BaseCommand._archive_async(
@@ -188,44 +479,98 @@ class BaseCommand(ABC):
                 meta=meta,
                 request_id=self._request_id,
             )
-        except Exception as e:
-            # 保存失敗はコマンドの成否に影響させない
-            logger.warning(f"バックグラウンド保存に失敗: {e}")
 
+        except Exception:
+            logger.warning(
+                "Input archive failed",
+                exc_info=True,
+            )
 
-    # ====== サブクラスの execute() を自動でラップする ======
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        orig = getattr(cls, "execute", None)
-        if orig is None or not asyncio.iscoroutinefunction(orig):
+    def __init_subclass__(
+        cls,
+        **kwargs,
+    ) -> None:
+        """
+        サブクラスのexecute()へ共通ログコンテキストを適用する。
+        """
+        super().__init_subclass__(
+            **kwargs
+        )
+
+        original_execute = getattr(
+            cls,
+            "execute",
+            None,
+        )
+
+        if (
+            original_execute is None
+            or not asyncio.iscoroutinefunction(
+                original_execute
+            )
+        ):
             return
 
-        async def _wrapped(self, *a, **kw):
-            # 1) 相関IDを発行（1回のexecute全体で共有）
-            if getattr(self, "_request_id", None) is None:
-                self._request_id = uuid.uuid4().hex[:8]
+        async def _wrapped(
+            self,
+            *args,
+            **kwargs,
+        ):
+            if getattr(
+                self,
+                "_request_id",
+                None,
+            ) is None:
+                self._request_id = (
+                    uuid.uuid4().hex[:8]
+                )
 
-            # 2) ctx 構築 → 以降の INFO/ERROR に自動付与
-            interaction = getattr(self, "interaction", None)
+            interaction = getattr(
+                self,
+                "interaction",
+                None,
+            )
+
             try:
-                ctx = await build_ctx_from_interaction(interaction) if interaction else {}
+                ctx = (
+                    await build_ctx_from_interaction(
+                        interaction
+                    )
+                    if interaction
+                    else {}
+                )
+
             except Exception:
                 ctx = {}
 
-            # request_id をctxへ統合（DEBUG含む全レベルで先頭に表示される）
             if self._request_id:
-                ctx = {"request_id": self._request_id, **ctx}
-                
-                # 3) 元の実装へ
-                return await orig(self, *a, **kw)
+                ctx = {
+                    "request_id": self._request_id,
+                    **ctx,
+                }
 
-        setattr(cls, "execute", _wrapped)
-    
+            with use_log_context(ctx):
+                return await original_execute(
+                    self,
+                    *args,
+                    **kwargs,
+                )
+
+        setattr(
+            cls,
+            "execute",
+            _wrapped,
+        )
 
     @abstractmethod
-    async def execute(self):
+    async def execute(
+        self,
+        *args,
+        **kwargs,
+    ):
         """
-        コマンドのメイン処理
-        各コマンドで必ず実装
+        コマンドのメイン処理。
+
+        各コマンドで必ず実装する。
         """
-        pass
+        raise NotImplementedError

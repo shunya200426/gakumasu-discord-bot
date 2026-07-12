@@ -6,8 +6,6 @@ from models.nia.final_grade_from_img.params import NiaFinalGradeFromImgParams
 from models.nia.final_grade_from_img.result import NiaFinalGradeFromImgResult
 from models.nia.final_grade.params import NiaFinalGradeParams
 from scenarios import NiaScenario
-# from commands.nia_commands.final_grade.embed_builder import build_final_grade_embed  # Embed構築関数
-# from .embed_builder import build_error_embed
 from commands.nia_commands.final_grade.container_builder import build_final_grade_container
 from .container_builder import build_error_container
 from utils.logger import get_logger
@@ -150,6 +148,7 @@ class ParamSelect(ui.Select):
         self.disabled = True
         await interaction.message.edit(view=self.view)
 
+
 class NiaFinalGradeFromImgCommand(BaseCommand):
     """
     NIAシナリオの最終評価計算コマンド
@@ -271,9 +270,6 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
                     "kirameki":   (bonus_dict.get("kirameki") or 0) if params.is_boost_active else 0,
                 }
 
-                # logger.info("Error Embed 構築開始")
-                # err = build_error_embed(params=parameters_dict, bonus=bonus_dict, scores=score_dict, is_boost=params.is_boost_active)
-                # logger.info("Error Embed 構築完了：メッセージを送信")
 
                 # View / Container構築
                 logger.info("ERROR View / Container構築開始")
@@ -370,13 +366,6 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
         logger.info(f"最終スコア: {result.final_score}")
         logger.info(f"評価ランク: {result.final_grade}")
 
-        # Embed構築
-        # logger.info("Embed構築開始")
-        # self.embed = build_final_grade_embed(result)
-        # logger.info("Embed構築完了: メッセージ送信を開始")
-
-        # Discordに送信
-        # await interaction.edit_original_response(content=None, embed=self.embed)
 
         # 現在値を保持（モーダル初期値用）
         self._current_values = {
