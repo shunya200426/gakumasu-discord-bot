@@ -22,6 +22,16 @@ LOG_DIR = HOME_DIR / "logs" / "discord-bot"
 BACKUP_DIR = HOME_DIR / "backups" / "discord-bot"
 
 # =========================
+# AI Models
+# =========================
+
+MODEL_FILES_DIR = PROJECT_DIR / "model_files"
+
+YOLO_MODEL_DIR = MODEL_FILES_DIR / "yolo"
+
+YOLO_MODEL_PATH = YOLO_MODEL_DIR / "ui_detector.onnx"
+
+# =========================
 # Database
 # =========================
 
@@ -70,4 +80,6 @@ REQUIRED_DIRECTORIES = [
     INFERENCE_EXPORT_DIR,
     STATISTICS_EXPORT_DIR,
     CSV_EXPORT_DIR,
+    MODEL_FILES_DIR,
+    MODEL_FILES_DIR / "yolo",
 ]

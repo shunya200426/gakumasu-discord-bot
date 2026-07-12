@@ -70,13 +70,13 @@ HAJIME = {
 
     "legend": {
         "name": "レジェンド",
-        "st_max": 2800,
+        "st_max": 3000,
         "status_point_rates": 2.1,
         "challenge_bonus_default": 90,
         "exam_post_bonus": {
-            "first": 120,
-            "second": 60,
-            "third": 30,
+            "first": 160,
+            "second": 80,
+            "third": 40,
             "other": 0,
         },
         "score_attenuation": {
