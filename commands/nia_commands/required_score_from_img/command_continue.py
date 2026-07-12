@@ -1,19 +1,21 @@
 # commands/nia_commands/required_score_from_img/command.py
-from typing import Tuple
+import time
+
 import discord
 from discord import Embed, ui
+
 from commands.nia_commands.required_score.command import NiaRequiredScoreCommand
+from commands.nia_commands.required_score.container_builder import (
+    build_required_score_container,
+)
+from models.nia.final_grade.params import NiaFinalGradeParams
 from models.nia.required_score_from_img.params import NiaRequiredScoreFromImgParams
 from models.nia.required_score_from_img.result import NiaRequiredScoreFromImgResult
-from models.nia.final_grade.params import NiaFinalGradeParams
-from scenarios.nia_scenario import NiaScenario
 from ocr.core import OCR
-# from commands.nia_commands.required_score.embed_builder import build_required_score_embed
-from commands.nia_commands.required_score.container_builder import build_required_score_container
-# from .embed_builder import build_error_embed
-from .container_builder import build_error_container
+from scenarios.nia_scenario import NiaScenario
 from utils.logger import get_logger
-import time
+
+from .container_builder import build_error_container
 
 COMMAND_NAME = "nia_required_score_from_img"
 logger = get_logger()

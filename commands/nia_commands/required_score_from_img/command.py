@@ -1,16 +1,20 @@
 # commands/nia_commands/required_score_from_img/command.py
+from __future__ import annotations
+
+from typing import cast
+
+import cv2
 import discord
+import numpy as np
 from discord import Embed, ui
 from commands.nia_commands.required_score.command import NiaRequiredScoreCommand
 from models.nia.required_score_from_img.params import NiaRequiredScoreFromImgParams
-from models.nia.required_score_from_img.result import NiaRequiredScoreFromImgResult
-from models.nia.final_grade.params import NiaFinalGradeParams
-from scenarios.nia_scenario import NiaScenario
-from ocr.core import OCR
 # from commands.nia_commands.required_score.embed_builder import build_required_score_embed
 from commands.nia_commands.required_score.container_builder import build_required_score_container
 # from .embed_builder import build_error_embed
 from .container_builder import build_error_container
+from .inference_use_case import InferenceUseCase
+from services.inference_service import InferenceService
 from utils.logger import get_logger
 import time
 
@@ -220,8 +224,10 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
             return await interaction.edit_original_response(
                 content="画像ファイルを添付してください"
             )
-        
-        # 読み取り試行
+
+        schedule_img_bytes: bytes | None = None
+        party_img_bytes: bytes | None = None
+
         try:
             # 画像の読み込み
             t1 = time.perf_counter()
@@ -230,73 +236,68 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
             dt = (time.perf_counter() - t1) * 1000
             logger.debug("loading img time %.1f ms", dt)
 
-            # パラメータの読み取り
-            t2 = time.perf_counter()
-            schedule_ocr = OCR(schedule_img_bytes)
-            parameters_dict = schedule_ocr.read_params()
-            dt = (time.perf_counter() - t2) * 1000
-            logger.debug(
-                "read params vo: %s da: %s vi: %s fans: %s time %.1f ms",
-                parameters_dict.get("vo"),
-                parameters_dict.get("da"),
-                parameters_dict.get("vi"),
-                parameters_dict.get("fans"),
-                dt
+            schedule_image = self._decode_image(
+                schedule_img_bytes,
+                label="スケジュール画面",
             )
 
-            # パラメータボーナスの読み取り
-            t3 = time.perf_counter()
-            party_ocr = OCR(party_img_bytes)
-            bonus_dict = party_ocr.read_bonus(params.is_boost_active)
-            dt = (time.perf_counter() - t3) * 1000
-            logger.debug(
-                "read bonus vo: %s da: %s vi: %s time %.1f ms",
-                bonus_dict.get("vo"), 
-                bonus_dict.get("da"), 
-                bonus_dict.get("vi"),
-                dt
+            party_image = self._decode_image(
+                party_img_bytes,
+                label="編成画面",
             )
 
-            if None in parameters_dict.values() or None in bonus_dict.values():
+            inference_use_case = (
+                self._get_inference_use_case(
+                    interaction
+                )
+            )
+
+            use_case_result = (
+                await inference_use_case.execute(
+                    params=params,
+                    schedule_image=schedule_image,
+                    party_image=party_image,
+                )
+            )
+
+            parameters_dict = (
+                use_case_result.parameters
+            )
+
+            bonus_dict = (
+                use_case_result.bonuses
+            )
+
+            if not use_case_result.success:
                 # 現在値を保持（モーダル初期値用）
-                self._current_values = {
-                    "audition" :  params.audition,
-                    "vo_status":  parameters_dict.get("vo")   or 0,
-                    "da_status":  parameters_dict.get("da")   or 0,
-                    "vi_status":  parameters_dict.get("vi")   or 0,
-                    "vo_bonus":   bonus_dict.get("vo")        or 0,
-                    "da_bonus":   bonus_dict.get("da")        or 0,
-                    "vi_bonus":   bonus_dict.get("vi")        or 0,
-                    "now_fans":   parameters_dict.get("fans") or 0,
-                    "boost_month": bool(params.is_boost_active),
-                    "kirameki":   (bonus_dict.get("kirameki") or 0) if params.is_boost_active else 0,
-                }
+                self._set_current_values(
+                    params=params,
+                    parameters_dict=parameters_dict,
+                    bonus_dict=bonus_dict,
+                )
 
                 # View / Container構築 -> メッセージ送信
-                logger.info("ERROR View/Container構築開始")
-                err_layout = ui.LayoutView()
-                err_container = build_error_container(
-                    params=parameters_dict,
-                    bonus=bonus_dict,
-                    is_boost=params.is_boost_active,
+                await self._send_ocr_error_view(
+                    interaction=interaction,
+                    params=params,
+                    parameters_dict=parameters_dict,
+                    bonus_dict=bonus_dict,
                 )
-                err_container.add_item(ui.Separator())
-                row = ui.ActionRow()
-                row.add_item(ParamSelect(self))
-                err_container.add_item(row)
-                err_layout.add_item(err_container)
-                logger.info("ERROR View/Container構築完了: メッセージ送信を開始")
-                await interaction.edit_original_response(view=err_layout)
 
                 # ▼ 失敗時も保存する（同意時）
                 await self.maybe_archive_inputs(
                     interaction=interaction,
                     save_agree=params.save_agree,
                     command=COMMAND_NAME,
-                    images={
-                        "schedule": (params.schedule_img.filename or "schedule.png", schedule_img_bytes),
-                        "party":    (params.party_img.filename or "party.png",     party_img_bytes),
-                    },
+                    images=self._build_archive_images(
+                        params=params,
+                        schedule_img_bytes=(
+                            schedule_img_bytes
+                        ),
+                        party_img_bytes=(
+                            party_img_bytes
+                        ),
+                    ),
                     meta={
                         "error": "param_or_bonus_read_failed",
                         "ocr_params": parameters_dict,
@@ -346,122 +347,26 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
             )
             self.log_command_end(COMMAND_NAME)
             return
-        
-        # インスタンス生成
-        t4 = time.perf_counter()
-        scenario = NiaScenario(mode=params.mode)
-
-        if params.is_boost_active:
-            kirameki = bonus_dict['kirameki']
-            logger.debug("kiramek: %s", kirameki)
-        else:
-            kirameki = 0
-
-        calc_params = NiaFinalGradeParams(
-            character     = params.character,
-            mode          = params.mode,
-            audition      = params.audition,
-            vo_status     = parameters_dict['vo'],
-            da_status     = parameters_dict['da'],
-            vi_status     = parameters_dict['vi'],
-            vo_bonus      = bonus_dict['vo'],
-            da_bonus      = bonus_dict['da'],
-            vi_bonus      = bonus_dict['vi'],
-            vo_score      = 0,
-            da_score      = 0,
-            vi_score      = 0,
-            now_fans      = parameters_dict['fans'],
-            challenge_P_item = params.challenge_P_item,
-            is_boost_active  = params.is_boost_active,
-            kirameki         = kirameki
-        )
-        logger.info("calc params %s", calc_params)
-
-        # 逆算ロジックは共有コアを呼ぶだけ
-        t_core = time.perf_counter()
-        logger.info(
-            "[required_score_from_img] compute start char=%s mode=%s audition=%s target_grade=%s target_score=%s",
-            params.character, params.mode, params.audition, params.target_grade, params.target_score
-        )
-        result_dict = self._compute_required_result_dict(
-            scenario=scenario,
-            calc_params=calc_params,
-            character=params.character,
-            mode=params.mode,
-            audition=params.audition,
-            target_grade=params.target_grade,
-            target_score=params.target_score,
-        )
-        logger.debug(
-            "[required_score_from_img] compute finished in %.1f ms",
-            (time.perf_counter() - t_core) * 1000
-        )
-
-        # 表示ペアも共通で生成
-        t_pairs = time.perf_counter()
-        pairs, target_grade_norm, target_score_norm = self._build_pairs(
-            result_dict=result_dict,
-            target_grade=params.target_grade,
-            target_score=params.target_score,
-        )
-        logger.debug(
-            "[required_score] build_pairs finished in %.1f ms mode=%s",
-            (time.perf_counter() - t_pairs) * 1000,
-            ("target_score" if target_score_norm is not None else
-             "target_grade" if target_grade_norm is not None else "all_grades")
-        )
-
-        result = NiaRequiredScoreFromImgResult(
-            character              = params.character,
-            mode                   = params.mode,
-            audition               = params.audition,
-            vo_status              = parameters_dict['vo'],
-            da_status              = parameters_dict['da'],
-            vi_status              = parameters_dict['vi'],
-            vo_bonus               = bonus_dict['vo'],
-            da_bonus               = bonus_dict['da'],
-            vi_bonus               = bonus_dict['vi'],
-            now_fans               = parameters_dict['fans'],
-            challenge_P_item       = params.challenge_P_item,
-            is_boost_active        = params.is_boost_active,
-            kirameki               = kirameki,
-            SS_required_score      = self._total_or_none(result_dict.get("SS")),
-            SS_plus_required_score = self._total_or_none(result_dict.get("SS+")),
-            SSS_required_score     = self._total_or_none(result_dict.get("SSS")),
-            SSS_plus_required_score= self._total_or_none(result_dict.get("SSS+")),
-        )
-
-        # 出力サマリ（INFO）
-        def _brief(v):
-            if isinstance(v, dict):
-                return f"{v.get('total')} (Vo={v.get('vo')},Da={v.get('da')},Vi={v.get('vi')})" + (" [CLEAR!]" if "note" in v else "")
-            return v
-        logger.info(
-            "result summary SS=%s SS+=%s SSS=%s SSS+=%s",
-            _brief(result_dict.get("SS")), _brief(result_dict.get("SS+")),
-            _brief(result_dict.get("SSS")), _brief(result_dict.get("SSS+")),
-        )
-
-        # Embed構築
-        # logger.info("Embed構築開始")
-        # self.embed = build_required_score_embed(result, override_pairs=pairs)
-        # logger.info("Embed構築完了: メッセージ送信を開始")
-        # await interaction.edit_original_response(content=None, embed=self.embed)
-
 
         # 現在値を保持（モーダル初期値用）
-        self._current_values = {
-            "audition" : params.audition,
-            "vo_status":  parameters_dict.get("vo")   or 0,
-            "da_status":  parameters_dict.get("da")   or 0,
-            "vi_status":  parameters_dict.get("vi")   or 0,
-            "vo_bonus":   bonus_dict.get("vo")        or 0,
-            "da_bonus":   bonus_dict.get("da")        or 0,
-            "vi_bonus":   bonus_dict.get("vi")        or 0,
-            "now_fans":   parameters_dict.get("fans") or 0,
-            "boost_month": bool(params.is_boost_active),
-            "kirameki":   (bonus_dict.get("kirameki") or 0) if params.is_boost_active else 0,
-        }
+        self._set_current_values(
+            params=params,
+            parameters_dict=parameters_dict,
+            bonus_dict=bonus_dict,
+        )
+
+        result = (
+            use_case_result.required_score_result
+        )
+
+        if result is None:
+            raise RuntimeError(
+                "必要スコア計算結果がありません。"
+            )
+
+        pairs = (
+            use_case_result.pairs
+        )
 
         # View / Container構築
         logger.debug("View/Container構築開始")
@@ -487,10 +392,15 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
             interaction=interaction,
             save_agree=params.save_agree,
             command="nia_required_score_from_img",
-            images={
-                "schedule": (params.schedule_img.filename or "schedule.png", schedule_img_bytes),
-                "party":    (params.party_img.filename or "party.png",     party_img_bytes),
-            },
+            images=self._build_archive_images(
+                params=params,
+                schedule_img_bytes=(
+                    schedule_img_bytes
+                ),
+                party_img_bytes=(
+                    party_img_bytes
+                ),
+            ),
             meta={
                 "mode": params.mode,
                 "audition": params.audition,
@@ -501,13 +411,181 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
             },
         )
                 
-        dt = (time.perf_counter() - t4) * 1000
+        dt = use_case_result.calculation_ms
         logger.debug("required score finished in %.2f ms", dt)
 
         dt = (time.perf_counter() - t0) * 1000
         logger.debug("%s finished in %.2f ms",COMMAND_NAME, dt)
         self.log_command_end(COMMAND_NAME)
 
+    @staticmethod
+    def _decode_image(
+        image_bytes: bytes,
+        *,
+        label: str,
+    ) -> np.ndarray:
+        """
+        画像バイト列をOpenCVのBGR画像へ変換する。
+        """
+        if not image_bytes:
+            raise ValueError(
+                f"{label}の画像データが空です。"
+            )
+
+        encoded = np.frombuffer(
+            image_bytes,
+            dtype=np.uint8,
+        )
+
+        image = cv2.imdecode(
+            encoded,
+            cv2.IMREAD_COLOR,
+        )
+
+        if image is None:
+            raise ValueError(
+                f"{label}を画像として"
+                "読み込めませんでした。"
+            )
+
+        return image
+
+    @staticmethod
+    def _build_archive_images(
+        *,
+        params: NiaRequiredScoreFromImgParams,
+        schedule_img_bytes: bytes | None,
+        party_img_bytes: bytes | None,
+    ) -> dict[str, tuple[str, bytes]]:
+        """
+        読み込み済み画像だけを保存用辞書へまとめる。
+        """
+        images: dict[
+            str,
+            tuple[str, bytes],
+        ] = {}
+
+        if schedule_img_bytes is not None:
+            images["schedule"] = (
+                params.schedule_img.filename
+                or "schedule.png",
+                schedule_img_bytes,
+            )
+
+        if party_img_bytes is not None:
+            images["party"] = (
+                params.party_img.filename
+                or "party.png",
+                party_img_bytes,
+            )
+
+        return images
+
+    def _set_current_values(
+        self,
+        *,
+        params: NiaRequiredScoreFromImgParams,
+        parameters_dict: dict,
+        bonus_dict: dict,
+    ) -> None:
+        """
+        Modalによる再計算で使用する現在値を保持する。
+        """
+        self._current_values = {
+            "audition": params.audition,
+            "vo_status": (
+                parameters_dict.get("vo")
+                or 0
+            ),
+            "da_status": (
+                parameters_dict.get("da")
+                or 0
+            ),
+            "vi_status": (
+                parameters_dict.get("vi")
+                or 0
+            ),
+            "vo_bonus": (
+                bonus_dict.get("vo")
+                or 0
+            ),
+            "da_bonus": (
+                bonus_dict.get("da")
+                or 0
+            ),
+            "vi_bonus": (
+                bonus_dict.get("vi")
+                or 0
+            ),
+            "now_fans": (
+                parameters_dict.get("fans")
+                or 0
+            ),
+            "boost_month": bool(
+                params.is_boost_active
+            ),
+            "kirameki": (
+                bonus_dict.get("kirameki")
+                or 0
+            )
+            if params.is_boost_active
+            else 0,
+        }
+
+    async def _send_ocr_error_view(
+        self,
+        *,
+        interaction: discord.Interaction,
+        params: NiaRequiredScoreFromImgParams,
+        parameters_dict: dict,
+        bonus_dict: dict,
+    ) -> None:
+        """
+        OCR結果に不足がある場合の修正UIを表示する。
+        """
+        logger.info("ERROR View/Container構築開始")
+
+        err_layout = ui.LayoutView()
+        err_container = build_error_container(
+            params=parameters_dict,
+            bonus=bonus_dict,
+            is_boost=params.is_boost_active,
+        )
+        err_container.add_item(ui.Separator())
+        row = ui.ActionRow()
+        row.add_item(ParamSelect(self))
+        err_container.add_item(row)
+        err_layout.add_item(err_container)
+
+        logger.info("ERROR View/Container構築完了: メッセージ送信を開始")
+        await interaction.edit_original_response(view=err_layout)
+
+    def _get_inference_use_case(
+        self,
+        interaction: discord.Interaction,
+    ) -> InferenceUseCase:
+        """
+        Botが保持するInferenceServiceから
+        画像推論UseCaseを生成する。
+        """
+        inference_service = cast(
+            InferenceService | None,
+            getattr(
+                interaction.client,
+                "inference_service",
+                None,
+            ),
+        )
+
+        if inference_service is None:
+            raise RuntimeError(
+                "InferenceServiceが"
+                "初期化されていません。"
+            )
+
+        return InferenceUseCase(
+            inference_service
+        )
 
     # --- 内部: 再計算してメッセージを書き換える ---
     async def _recompute_and_edit(self, interaction: discord.Interaction, merged: dict):
@@ -520,100 +598,39 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
         static = getattr(self, "_static", None)
         if not static:
             # 初回に備えた保険。execute() 冒頭で _static を必ず埋めるのが理想。
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 embed=Embed(title="再計算エラー", description="内部状態が不足しています。もう一度コマンドを実行してください。"),
                 ephemeral=True
             )
             return
-        
-        # 2) kirameki は強化月間ONのときのみ有効
-        kirameki = merged.get("kirameki", 0) if static["is_boost_active"] else 0
 
-        # 3) ドメイン計算を再実行
         async with self.scoped_ctx(interaction):
             self.log_recompute_start(COMMAND_NAME)
             t0 = time.perf_counter()
 
-            scenario = NiaScenario(mode=static["mode"])
-
-            calc_params = NiaFinalGradeParams(
-                character      = static["character"],
-                mode           = static["mode"],
-                audition       = merged["audition"],
-                vo_status      = merged["vo_status"],
-                da_status      = merged["da_status"],
-                vi_status      = merged["vi_status"],
-                vo_bonus       = merged["vo_bonus"],
-                da_bonus       = merged["da_bonus"],
-                vi_bonus       = merged["vi_bonus"],
-                vo_score       = 0,
-                da_score       = 0,
-                vi_score       = 0,
-                now_fans       = merged["now_fans"],
-                challenge_P_item = static["challenge_P_item"],
-                is_boost_active  = static["is_boost_active"],
-                kirameki         = kirameki,
+            inference_use_case = (
+                self._get_inference_use_case(
+                    interaction
+                )
             )
-            logger.info("calc params %s", calc_params)
 
-            # --- 共通コアへ委譲 ---
-            t_core = time.perf_counter()
-            result_dict = self._compute_required_result_dict(
-                scenario=scenario,
-                calc_params=calc_params,
+            result, pairs = inference_use_case.calculate(
                 character=static["character"],
                 mode=static["mode"],
                 audition=merged["audition"],
                 target_grade=static["target_grade"],
                 target_score=static["target_score"],
-            )
-            logger.debug(
-                "[required_score] compute_result_dict finished in %.1f ms",
-                (time.perf_counter() - t_core) * 1000
-            )
-            
-            t_pairs = time.perf_counter()
-            pairs,target_grade_norm, target_score_norm = self._build_pairs(
-                result_dict=result_dict,
-                target_grade=static["target_grade"],
-                target_score=static["target_score"],
-            )
-            logger.debug(
-                "[required_score] build_pairs finished in %.1f ms mode=%s",
-                (time.perf_counter() - t_pairs) * 1000,
-                ("target_score" if target_score_norm is not None else
-                "target_grade" if target_grade_norm is not None else "all_grades")
-            )
-
-            result = NiaRequiredScoreFromImgResult(
-                character              = static["character"],
-                mode                   = static["mode"],
-                audition               = merged["audition"],
-                vo_status              = merged["vo_status"],
-                da_status              = merged["da_status"],
-                vi_status              = merged["vi_status"],
-                vo_bonus               = merged["vo_bonus"],
-                da_bonus               = merged["da_bonus"],
-                vi_bonus               = merged["vi_bonus"],
-                now_fans               = merged["now_fans"],
-                challenge_P_item       = static["challenge_P_item"],
-                is_boost_active        = static["is_boost_active"],
-                kirameki               = kirameki,
-                SS_required_score      = self._total_or_none(result_dict.get("SS")),
-                SS_plus_required_score = self._total_or_none(result_dict.get("SS+")),
-                SSS_required_score     = self._total_or_none(result_dict.get("SSS")),
-                SSS_plus_required_score= self._total_or_none(result_dict.get("SSS+")),
-            )
-
-            # 出力サマリ（INFO）
-            def _brief(v):
-                if isinstance(v, dict):
-                    return f"{v.get('total')} (Vo={v.get('vo')},Da={v.get('da')},Vi={v.get('vi')})" + (" [CLEAR!]" if "note" in v else "")
-                return v
-            logger.info(
-                "result summary SS=%s SS+=%s SSS=%s SSS+=%s",
-                _brief(result_dict.get("SS")), _brief(result_dict.get("SS+")),
-                _brief(result_dict.get("SSS")), _brief(result_dict.get("SSS+")),
+                challenge_p_item=(
+                    static[
+                        "challenge_P_item"
+                    ]
+                ),
+                is_boost_active=(
+                    static[
+                        "is_boost_active"
+                    ]
+                ),
+                values=merged,
             )
 
             # View / Container構築 -> メッセージ送信
