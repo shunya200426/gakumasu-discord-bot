@@ -97,6 +97,12 @@ class GakumasuBot(commands.Bot):
                 len(self.detector.class_names),
             )
 
+            log.info("Running YOLO warmup...")
+
+            self.detector.warmup()
+
+            log.info("YOLO warmup completed.")
+
             # ====== スラッシュコマンド登録 ======
             for module_name in MODULES:
                 importlib.import_module(module_name)

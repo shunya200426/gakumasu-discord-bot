@@ -192,6 +192,25 @@ class YoloDetector:
         )
 
         return detections
+    
+    def warmup(self) -> None:
+        """
+        モデルをウォームアップする。
+
+        初回推論時の遅延を減らすため、
+        ダミー画像で一度だけ推論を実行する。
+        """
+
+        dummy = np.zeros(
+            (
+                self.image_size[0],
+                self.image_size[1],
+                3,
+            ),
+            dtype=np.uint8,
+        )
+
+        self.detect(dummy)
 
     def _convert_result(
         self,
