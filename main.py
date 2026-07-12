@@ -32,7 +32,6 @@ from utils.logger import (
     use_log_context,
 )
 
-
 # ====== 起動前準備 ======
 load_dotenv()
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
@@ -266,17 +265,17 @@ async def _notify_dev_about_block(reason: str, interaction: discord.Interaction)
     cmd = getattr(getattr(interaction, "command", None), "qualified_name", None)
 
     lines = [
-        f"# 【Bot警告】",
+        "# 【Bot警告】",
         f"### 未許可実行を検知__（{reason}）__",
-        f"### 時刻: ",
+        "### 時刻: ",
         f"**{ts}**",
-        f"### コマンド: ",
+        "### コマンド: ",
         f"</{cmd}:1417467125567848458>",
-        f"### 実行者: ",
+        "### 実行者: ",
         f"**__`{getattr(interaction.user, 'name', None)}`__ ({getattr(interaction.user, 'id', None)})**",
-        f"### サーバー: ",
+        "### サーバー: ",
         f"**__{getattr(g, 'name', '(DM/不明)')}__ ({getattr(g, 'id', None)})**",
-        f"### チャンネル: ",
+        "### チャンネル: ",
         f"**{getattr(ch, 'name', None)} ({getattr(ch, 'id', None)})**",
     ]
     content = "\n".join(lines)
@@ -433,7 +432,7 @@ async def _slash_server_check_impl(
         try:
             embed = Embed(
                 color=0xE53935,
-                description=f"# ⚠️ このサーバーはまだ登録されていません。\n### 導入をご希望の場合は、運営までご連絡ください。"
+                description="# ⚠️ このサーバーはまだ登録されていません。\n### 導入をご希望の場合は、運営までご連絡ください。"
             )
             await interaction.response.send_message(
                 embed=embed,
