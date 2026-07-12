@@ -15,14 +15,9 @@ from commands.base_command import BaseCommand
 from commands.nia_commands.final_grade.container_builder import (
     build_final_grade_container,
 )
-from models.nia.final_grade.params import NiaFinalGradeParams
 from models.nia.final_grade_from_img.params import (
     NiaFinalGradeFromImgParams,
 )
-from models.nia.final_grade_from_img.result import (
-    NiaFinalGradeFromImgResult,
-)
-from scenarios import NiaScenario
 from services.inference_service import InferenceService
 from utils.logger import get_logger
 
@@ -422,25 +417,12 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
             )
 
             # ========================================
-            # Botが保持しているInferenceServiceを取得
+            # 画像推論UseCaseを取得
             # ========================================
-            inference_service = cast(
-                InferenceService | None,
-                getattr(
-                    interaction.client,
-                    "inference_service",
-                    None,
-                ),
-            )
-
-            if inference_service is None:
-                raise RuntimeError(
-                    "InferenceServiceが"
-                    "初期化されていません。"
+            inference_use_case = (
+                self._get_inference_use_case(
+                    interaction
                 )
-
-            inference_use_case = InferenceUseCase(
-                inference_service
             )
 
             # ========================================
@@ -907,6 +889,33 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
             view=view,
         )
 
+    def _get_inference_use_case(
+        self,
+        interaction: discord.Interaction,
+    ) -> InferenceUseCase:
+        """
+        Botが保持するInferenceServiceから
+        画像推論UseCaseを生成する。
+        """
+        inference_service = cast(
+            InferenceService | None,
+            getattr(
+                interaction.client,
+                "inference_service",
+                None,
+            ),
+        )
+
+        if inference_service is None:
+            raise RuntimeError(
+                "InferenceServiceが"
+                "初期化されていません。"
+            )
+
+        return InferenceUseCase(
+            inference_service
+        )
+
     # --- 内部: 再計算してメッセージを書き換える ---
     async def _recompute_and_edit(
         self,
@@ -936,15 +945,6 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
             )
             return
 
-        kirameki = (
-            merged.get(
-                "kirameki",
-                0,
-            )
-            if static["is_boost_active"]
-            else 0
-        )
-
         async with self.scoped_ctx(
             interaction
         ):
@@ -952,58 +952,27 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
                 COMMAND_NAME
             )
 
-            final_grade_params = (
-                NiaFinalGradeParams(
-                    character=static["character"],
-                    mode=static["mode"],
-                    audition=static["audition"],
-                    vo_status=merged["vo_status"],
-                    da_status=merged["da_status"],
-                    vi_status=merged["vi_status"],
-                    vo_bonus=merged["vo_bonus"],
-                    da_bonus=merged["da_bonus"],
-                    vi_bonus=merged["vi_bonus"],
-                    vo_score=merged["vo_score"],
-                    da_score=merged["da_score"],
-                    vi_score=merged["vi_score"],
-                    now_fans=merged["now_fans"],
-                    challenge_P_item=(
-                        static[
-                            "challenge_P_item"
-                        ]
-                    ),
-                    is_boost_active=(
-                        static[
-                            "is_boost_active"
-                        ]
-                    ),
-                    kirameki=kirameki,
+            inference_use_case = (
+                self._get_inference_use_case(
+                    interaction
                 )
             )
 
-            logger.info(
-                "calc params %s",
-                final_grade_params,
-            )
-
-            scenario = NiaScenario(
-                mode=final_grade_params.mode
-            )
-
-            result: NiaFinalGradeFromImgResult = (
-                scenario.calculate_score(
-                    final_grade_params
-                )
-            )
-
-            logger.info(
-                "最終スコア: %s",
-                result.final_score,
-            )
-
-            logger.info(
-                "評価ランク: %s",
-                result.final_grade,
+            result = inference_use_case.calculate(
+                character=static["character"],
+                mode=static["mode"],
+                audition=static["audition"],
+                challenge_p_item=(
+                    static[
+                        "challenge_P_item"
+                    ]
+                ),
+                is_boost_active=(
+                    static[
+                        "is_boost_active"
+                    ]
+                ),
+                values=merged,
             )
 
             logger.info(

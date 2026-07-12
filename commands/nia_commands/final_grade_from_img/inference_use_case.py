@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import time
+from typing import Any
 
 import numpy as np
 
-from config.nia_settings import NIA
 from models.nia.final_grade.params import (
     NiaFinalGradeParams,
 )
@@ -26,7 +26,8 @@ from .inference_use_case_result import (
 logger = get_logger()
 
 # NIA Masterのパラメータ上限。
-PARAMETER_MAXIMUM = NIA['master']['st_max']
+# 将来的に設定ファイル側へ移動してもよい。
+PARAMETER_MAXIMUM = 2300
 
 
 class InferenceUseCase:
@@ -54,35 +55,7 @@ class InferenceUseCase:
         """
         3枚の画像から必要な値を読み取り、
         最終評価を計算する。
-
-        Args:
-            params:
-                コマンドから渡された計算条件。
-
-            schedule_image:
-                スケジュール画面のBGR画像。
-
-            party_image:
-                編成画面のBGR画像。
-
-            score_image:
-                スコア画面のBGR画像。
-
-        Returns:
-            推論結果、OCR失敗情報、
-            最終評価計算結果をまとめた結果。
         """
-
-        # ========================================
-        # YOLO推論・切り出し・OCR
-        # ========================================
-        #
-        # InferenceService.infer()は同期関数なので、
-        # Discordのイベントループを止めないよう
-        # asyncio.to_thread()で別スレッドへ移す。
-        #
-        # 同じDetector・TesseractEngineを共有するため、
-        # 3画像は安全側に倒して順番に処理する。
         schedule_inference = await asyncio.to_thread(
             self._inference_service.infer,
             schedule_image,
@@ -101,20 +74,9 @@ class InferenceUseCase:
             parameter_maximum=PARAMETER_MAXIMUM,
         )
 
-        # ========================================
-        # 使用するOCR結果を取得
-        # ========================================
-        parameters = (
-            schedule_inference.parameters
-        )
-
-        bonuses = (
-            party_inference.bonuses
-        )
-
-        scores = (
-            score_inference.scores
-        )
+        parameters = schedule_inference.parameters
+        bonuses = party_inference.bonuses
+        scores = score_inference.scores
 
         parameters_dict: dict[
             str,
@@ -181,68 +143,13 @@ class InferenceUseCase:
             score_inference.total_ms,
         )
 
-        # ========================================
-        # 必須OCR項目の確認
-        # ========================================
-        parameter_failed = any(
-            value is None
-            for value in (
-                parameters.vo,
-                parameters.da,
-                parameters.vi,
-                parameters.fans,
-            )
+        failed_sections = self._find_failed_sections(
+            is_boost_active=params.is_boost_active,
+            parameters=parameters_dict,
+            bonuses=bonus_dict,
+            scores=score_dict,
         )
 
-        bonus_targets: list[
-            int | float | None
-        ] = [
-            bonuses.vo,
-            bonuses.da,
-            bonuses.vi,
-        ]
-
-        if params.is_boost_active:
-            bonus_targets.append(
-                bonuses.kirameki
-            )
-
-        bonus_failed = any(
-            value is None
-            for value in bonus_targets
-        )
-
-        # 最終評価計算では属性別スコアを使う。
-        # 合計スコアは必須値ではない。
-        score_failed = any(
-            value is None
-            for value in (
-                scores.vo,
-                scores.da,
-                scores.vi,
-            )
-        )
-
-        failed_sections: list[str] = []
-
-        if parameter_failed:
-            failed_sections.append(
-                "parameters"
-            )
-
-        if bonus_failed:
-            failed_sections.append(
-                "bonuses"
-            )
-
-        if score_failed:
-            failed_sections.append(
-                "scores"
-            )
-
-        # ========================================
-        # OCR不足時
-        # ========================================
         if failed_sections:
             error_reason = (
                 "OCR required values missing: "
@@ -270,113 +177,39 @@ class InferenceUseCase:
                 ),
             )
 
-        # ========================================
-        # 型の絞り込み
-        # ========================================
-        #
-        # 上の必須値チェックにより、
-        # ここでは必要な値がすべて存在する。
-        vo_status = parameters.vo
-        da_status = parameters.da
-        vi_status = parameters.vi
-        now_fans = parameters.fans
+        calculation_started_at = (
+            time.perf_counter()
+        )
 
-        vo_bonus = bonuses.vo
-        da_bonus = bonuses.da
-        vi_bonus = bonuses.vi
-
-        vo_score = scores.vo
-        da_score = scores.da
-        vi_score = scores.vi
-
-        if (
-            vo_status is None
-            or da_status is None
-            or vi_status is None
-            or now_fans is None
-            or vo_bonus is None
-            or da_bonus is None
-            or vi_bonus is None
-            or vo_score is None
-            or da_score is None
-            or vi_score is None
-        ):
-            raise RuntimeError(
-                "OCR必須値の型絞り込みに失敗しました。"
-            )
-
-        kirameki_value: int | float = 0
-
-        if params.is_boost_active:
-            if bonuses.kirameki is None:
-                raise RuntimeError(
-                    "強化月間ですが、"
-                    "ほしのきらめきがありません。"
-                )
-
-            kirameki_value = (
-                bonuses.kirameki
-            )
-
-        # ========================================
-        # 最終評価計算
-        # ========================================
-        final_grade_params = NiaFinalGradeParams(
+        final_grade_result = self.calculate(
             character=params.character,
             mode=params.mode,
             audition=params.audition,
-            vo_status=vo_status,
-            da_status=da_status,
-            vi_status=vi_status,
-            vo_bonus=vo_bonus,
-            da_bonus=da_bonus,
-            vi_bonus=vi_bonus,
-            vo_score=vo_score,
-            da_score=da_score,
-            vi_score=vi_score,
-            now_fans=now_fans,
-            challenge_P_item=(
+            challenge_p_item=(
                 params.challenge_P_item
             ),
             is_boost_active=(
                 params.is_boost_active
             ),
-            kirameki=kirameki_value,
-        )
-
-        logger.info(
-            "calc params %s",
-            final_grade_params,
-        )
-
-        calculation_started_at = (
-            time.perf_counter()
-        )
-
-        scenario = NiaScenario(
-            mode=final_grade_params.mode
-        )
-
-        final_grade_result = (
-            scenario.calculate_score(
-                final_grade_params
-            )
+            values={
+                "vo_status": parameters_dict["vo"],
+                "da_status": parameters_dict["da"],
+                "vi_status": parameters_dict["vi"],
+                "vo_bonus": bonus_dict["vo"],
+                "da_bonus": bonus_dict["da"],
+                "vi_bonus": bonus_dict["vi"],
+                "vo_score": score_dict["vo"],
+                "da_score": score_dict["da"],
+                "vi_score": score_dict["vi"],
+                "now_fans": parameters_dict["fans"],
+                "kirameki": bonus_dict["kirameki"],
+            },
         )
 
         calculation_ms = (
             time.perf_counter()
             - calculation_started_at
         ) * 1000.0
-
-        logger.info(
-            "最終スコア: %s",
-            final_grade_result.final_score,
-        )
-
-        logger.info(
-            "評価ランク: %s",
-            final_grade_result.final_grade,
-        )
 
         return InferenceUseCaseResult(
             parameters=parameters_dict,
@@ -396,7 +229,7 @@ class InferenceUseCase:
             ),
             calculation_ms=calculation_ms,
         )
-    
+
     def calculate(
         self,
         *,
@@ -405,6 +238,172 @@ class InferenceUseCase:
         audition: str,
         challenge_p_item: bool,
         is_boost_active: bool,
-        values: dict,
+        values: dict[str, Any],
     ) -> NiaFinalGradeFromImgResult:
-        ...
+        """
+        OCRを実行せず、渡された値から最終評価を計算する。
+
+        初回実行とModalによる再計算の両方で、
+        同じ計算ロジックを使用するための共通メソッド。
+        """
+        required_keys = (
+            "vo_status",
+            "da_status",
+            "vi_status",
+            "vo_bonus",
+            "da_bonus",
+            "vi_bonus",
+            "vo_score",
+            "da_score",
+            "vi_score",
+            "now_fans",
+        )
+
+        missing_keys = [
+            key
+            for key in required_keys
+            if values.get(key) is None
+        ]
+
+        if missing_keys:
+            raise ValueError(
+                "最終評価計算に必要な値が"
+                "不足しています: "
+                + ", ".join(missing_keys)
+            )
+
+        kirameki = (
+            values.get(
+                "kirameki",
+                0,
+            )
+            if is_boost_active
+            else 0
+        )
+
+        if (
+            is_boost_active
+            and kirameki is None
+        ):
+            raise ValueError(
+                "強化月間ですが、"
+                "ほしのきらめきがありません。"
+            )
+
+        final_grade_params = NiaFinalGradeParams(
+            character=character,
+            mode=mode,
+            audition=audition,
+            vo_status=values["vo_status"],
+            da_status=values["da_status"],
+            vi_status=values["vi_status"],
+            vo_bonus=values["vo_bonus"],
+            da_bonus=values["da_bonus"],
+            vi_bonus=values["vi_bonus"],
+            vo_score=values["vo_score"],
+            da_score=values["da_score"],
+            vi_score=values["vi_score"],
+            now_fans=values["now_fans"],
+            challenge_P_item=(
+                challenge_p_item
+            ),
+            is_boost_active=(
+                is_boost_active
+            ),
+            kirameki=kirameki,
+        )
+
+        logger.info(
+            "calc params %s",
+            final_grade_params,
+        )
+
+        scenario = NiaScenario(
+            mode=final_grade_params.mode
+        )
+
+        result: NiaFinalGradeFromImgResult = (
+            scenario.calculate_score(
+                final_grade_params
+            )
+        )
+
+        logger.info(
+            "最終スコア: %s",
+            result.final_score,
+        )
+
+        logger.info(
+            "評価ランク: %s",
+            result.final_grade,
+        )
+
+        return result
+
+    @staticmethod
+    def _find_failed_sections(
+        *,
+        is_boost_active: bool,
+        parameters: dict[str, int | None],
+        bonuses: dict[
+            str,
+            int | float | None,
+        ],
+        scores: dict[str, int | None],
+    ) -> list[str]:
+        """
+        必須OCR項目が不足しているセクションを返す。
+        """
+        failed_sections: list[str] = []
+
+        parameter_failed = any(
+            parameters.get(key) is None
+            for key in (
+                "vo",
+                "da",
+                "vi",
+                "fans",
+            )
+        )
+
+        bonus_keys = [
+            "vo",
+            "da",
+            "vi",
+        ]
+
+        if is_boost_active:
+            bonus_keys.append(
+                "kirameki"
+            )
+
+        bonus_failed = any(
+            bonuses.get(key) is None
+            for key in bonus_keys
+        )
+
+        score_failed = any(
+            scores.get(key) is None
+            for key in (
+                "vo",
+                "da",
+                "vi",
+            )
+        )
+
+        if parameter_failed:
+            failed_sections.append(
+                "parameters"
+            )
+
+        if bonus_failed:
+            failed_sections.append(
+                "bonuses"
+            )
+
+        if score_failed:
+            failed_sections.append(
+                "scores"
+            )
+
+        return failed_sections
