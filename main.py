@@ -47,7 +47,105 @@ DEV_DM_COOLDOWN_GLOBAL    = int(os.getenv("DEV_DM_COOLDOWN_GLOBAL",    "30"))   
 
 intents = discord.Intents.default()
 intents.message_content = True
-bot = commands.Bot(command_prefix="!", intents=intents)
+
+
+MODULES = [
+    "commands.nia_commands.final_grade.ui",
+    "commands.nia_commands.final_grade_from_img.ui",
+    "commands.nia_commands.get_final_status.ui",
+    "commands.nia_commands.required_score.ui",
+    "commands.nia_commands.required_score_from_img.ui",
+    "commands.help_command.ui",
+    "commands.hajime_commands.final_grade.ui",
+    "commands.hajime_commands.required_score.ui",
+    "commands.hajime_commands.required_score_from_img.ui",
+]
+
+
+class GakumasuBot(commands.Bot):
+    def __init__(self):
+        super().__init__(
+            command_prefix="!",
+            intents=intents,
+        )
+
+        # 後で setup_hook() で初期化する
+        self.inference_service = None
+
+    async def setup_hook(self) -> None:
+        try:
+            # 各ui.pyを読み込み、デコレータを実行する
+            for module_name in MODULES:
+                importlib.import_module(module_name)
+            
+            # サブコマンドが追加されたgkmsをTreeへ登録する
+            self.tree.add_command(gkms)
+
+            log.info(
+                "Command tree prepared "
+                "(groups added, modules imported)"
+            )
+
+            # コマンドツリーの確認
+            from discord import app_commands
+
+            try:
+                commands_list = self.tree.get_commands()
+
+                log.debug(
+                    "Top-level cmds=%d",
+                    len(commands_list),
+                )
+
+                nia_group = next(
+                    (
+                        command
+                        for command in gkms.commands
+                        if isinstance(
+                            command,
+                            app_commands.Group,
+                        )
+                        and command.name == "nia"
+                    ),
+                    None,
+                )
+
+                if nia_group:
+                    log.debug(
+                        "gkms.nia subcmds=%s",
+                        [
+                            command.name
+                            for command in nia_group.commands
+                        ],
+                    )
+
+            except Exception:
+                log.debug(
+                    "Command tree introspection failed",
+                    exc_info=True,
+                )
+
+            log.info("Slash command registration scheduled")
+
+            self.tree.interaction_check = (
+                _slash_server_check_impl
+            )
+
+            log.info(
+                "Assigned global slash server check "
+                "to command tree"
+            )
+
+        except Exception:
+            log.error(
+                "setup_hook failed:\n%s",
+                traceback.format_exc(),
+            )
+            raise
+
+
+
+bot = GakumasuBot()
 
 
 class SimpleRateLimiter:
@@ -323,18 +421,6 @@ async def _slash_server_check_impl(
     return True
 
 
-MODULES = [
-    "commands.nia_commands.final_grade.ui",
-    "commands.nia_commands.final_grade_from_img.ui",
-    "commands.nia_commands.get_final_status.ui",
-    "commands.nia_commands.required_score.ui",
-    "commands.nia_commands.required_score_from_img.ui",
-    "commands.help_command.ui",
-    "commands.hajime_commands.final_grade.ui",
-    "commands.hajime_commands.required_score.ui",
-    "commands.hajime_commands.required_score_from_img.ui",
-]
-
 # 追加: ログ初期化（本番も開発もこれでOK）
 setup_logging(
     name="gakumasu_bot",
@@ -349,42 +435,6 @@ setup_logging(
 )
 log = get_logger()
 
-
-# ====== スラッシュコマンド登録 ======
-@bot.event
-async def setup_hook():
-    try:
-        bot.tree.add_command(gkms)
-        for m in MODULES:
-            importlib.import_module(m)
-        log.info("Command tree prepared (groups added, modules imported)")
-
-        # ツリーの中身をDEBUGで詳細記録（開発時に便利）
-        from discord import app_commands
-        try:
-            cmds = bot.tree.get_commands()
-            log.debug("Top-level cmds=%d", len(cmds))
-            # gkms直下の構成（存在すれば）
-            nia_grp = next(
-                (c for c in gkms.commands
-                 if isinstance(c, app_commands.Group) and c.name == "nia"),
-                None
-            )
-            if nia_grp:
-                log.debug("gkms.nia subcmds=%s", [c.name for c in nia_grp.commands])
-        except Exception:
-            log.debug("Command tree introspection failed", exc_info=True)
-
-        log.info("Slash command registration scheduled")
-
-        # --- ここに追加（setup_hook 内） ---
-        # 確実にスラッシュコマンドの実行前チェックを Tree に登録する
-        # 実際のチェック実装は下で定義しますが、ここで add_check を呼ぶと確実に動きます
-        bot.tree.interaction_check = _slash_server_check_impl
-        log.info("Assigned global slash server check to command tree (via interaction_check)")
-
-    except Exception:
-        log.error("setup_hook failed:\n%s", traceback.format_exc())
 
 @bot.event
 async def on_ready():
