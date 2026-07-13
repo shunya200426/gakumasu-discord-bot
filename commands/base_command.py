@@ -8,11 +8,13 @@ import zoneinfo
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
+from typing import cast
 
 import discord
 from discord import Embed, Interaction, ui
 
 from config.paths import PROVIDED_UPLOAD_DIR
+from services.inference_log_recorder import InferenceLogRecorder
 from utils.context import build_ctx_from_interaction
 from utils.logger import get_logger, use_log_context
 
@@ -200,6 +202,43 @@ class BaseCommand(ABC):
             )
 
         return image_bytes
+    
+    def get_inference_log_recorder(
+        self,
+        interaction: discord.Interaction,
+    ) -> InferenceLogRecorder:
+        """
+        Botが保持しているInferenceLogRecorderを取得する。
+        """
+
+        recorder = cast(
+            InferenceLogRecorder | None,
+            getattr(
+                interaction.client,
+                "inference_log_recorder",
+                None,
+            ),
+        )
+
+        if recorder is None:
+            raise RuntimeError(
+                "InferenceLogRecorderが"
+                "初期化されていません。"
+            )
+
+        return recorder
+
+    @property
+    def request_id(self) -> str:
+        """
+        現在のコマンド実行に割り当てられたrequest_idを返す。
+        """
+        if self._request_id is None:
+            raise RuntimeError(
+                "request_idが初期化されていません。"
+            )
+
+        return self._request_id
 
     @asynccontextmanager
     async def scoped_ctx(

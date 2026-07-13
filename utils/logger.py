@@ -1,13 +1,15 @@
 # logger.py
-import logging
-import logging.handlers
-import os
 import gzip
 import json
-from datetime import datetime
-from typing import Optional, Dict, Any
-from contextvars import ContextVar
+import logging
+import logging as _logging
+import logging.handlers
+import os
 from contextlib import contextmanager
+from contextvars import ContextVar
+from datetime import datetime
+from typing import Any, Dict, Optional
+
 
 # =========
 # フォーマッタ
@@ -268,10 +270,7 @@ if __name__ == "__main__":
     log.info("Bot起動テスト")
     log.warning("警告テスト")
     log.error("エラーテスト")
-
-
-# ---- 既存の定義の下に追記（ファイル末尾でOK） ----
-import logging as _logging
+    
 
 # main.py の setup_logging() 実行後に正しくハンドラが入る。
 # 互換用: 旧コードの `from utils.logger import logger` を壊さないための変数。

@@ -20,6 +20,7 @@ from config.paths import YOLO_MODEL_PATH
 from db.database import DatabaseManager
 from inference.yolo_detector import YoloDetector
 from ocr.tesseract_engine import TesseractEngine
+from services.inference_log_recorder import InferenceLogRecorder
 from services.inference_service import InferenceService
 from services.ocr_service import OcrService
 from utils.context import (
@@ -89,6 +90,7 @@ class GakumasuBot(commands.Bot):
         self.tesseract_engine: TesseractEngine | None = None
         self.ocr_service: OcrService | None = None
         self.inference_service: InferenceService | None = None
+        self.inference_log_recorder: InferenceLogRecorder | None = None
 
     async def setup_hook(self) -> None:
         try:
@@ -135,6 +137,20 @@ class GakumasuBot(commands.Bot):
                 ocr_service=self.ocr_service,
             )
             log.info("Inference service initialized.")
+
+            # InferenceLogRecorderの初期化
+            if db.inference is None:
+                raise RuntimeError(
+                    "InferenceRepositoryが"
+                    "初期化されていません。"
+                )
+
+            self.inference_log_recorder = (
+                InferenceLogRecorder(
+                    repository=db.inference,
+                    detector=self.detector,
+                )
+            )
 
             # ====== スラッシュコマンド登録 ======
             for module_name in MODULES:

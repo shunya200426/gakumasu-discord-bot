@@ -131,14 +131,10 @@ class InferenceUseCase:
             return InferenceUseCaseResult(
                 parameters=parameters_dict,
                 bonuses=bonus_dict,
+                schedule_inference=schedule_inference,
+                party_inference=party_inference,
                 failed_sections=failed_sections,
                 error_reason=error_reason,
-                schedule_inference_ms=(
-                    schedule_inference.total_ms
-                ),
-                party_inference_ms=(
-                    party_inference.total_ms
-                ),
             )
 
         calculation_started_at = (
@@ -178,14 +174,10 @@ class InferenceUseCase:
         return InferenceUseCaseResult(
             parameters=parameters_dict,
             bonuses=bonus_dict,
+            schedule_inference=schedule_inference,
+            party_inference=party_inference,
             required_score_result=result,
             pairs=pairs,
-            schedule_inference_ms=(
-                schedule_inference.total_ms
-            ),
-            party_inference_ms=(
-                party_inference.total_ms
-            ),
             calculation_ms=calculation_ms,
         )
 

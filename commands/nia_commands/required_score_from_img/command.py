@@ -262,6 +262,58 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
                 )
             )
 
+            # ========================================
+            # 推論ログ・検出結果のDB保存
+            # ========================================
+            inference_status = (
+                "SUCCESS"
+                if use_case_result.success
+                else "OCR_FAILED"
+            )
+
+            try:
+                inference_log_recorder = (
+                    self.get_inference_log_recorder(
+                        interaction
+                    )
+                )
+
+                inference_log_recorder.save(
+                    request_id=self.request_id,
+                    guild_id=interaction.guild_id,
+                    channel_id=interaction.channel_id,
+                    user_id=interaction.user.id,
+                    command_name=COMMAND_NAME,
+                    image_role="schedule",
+                    image_path=None,
+                    export_path=None,
+                    inference_result=(
+                        use_case_result.schedule_inference
+                    ),
+                    status=inference_status,
+                )
+
+                inference_log_recorder.save(
+                    request_id=self.request_id,
+                    guild_id=interaction.guild_id,
+                    channel_id=interaction.channel_id,
+                    user_id=interaction.user.id,
+                    command_name=COMMAND_NAME,
+                    image_role="party",
+                    image_path=None,
+                    export_path=None,
+                    inference_result=(
+                        use_case_result.party_inference
+                    ),
+                    status=inference_status,
+                )
+
+            except Exception:
+                logger.warning(
+                    "Failed to save inference logs",
+                    exc_info=True,
+                )
+
             parameters_dict = (
                 use_case_result.parameters
             )
