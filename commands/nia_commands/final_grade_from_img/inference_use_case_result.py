@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from inference.result import InferenceResult
 from models.nia.final_grade_from_img.result import (
     NiaFinalGradeFromImgResult,
 )
@@ -17,6 +18,10 @@ class InferenceUseCaseResult:
     bonuses: dict[str, int | float | None]
     scores: dict[str, int | None]
 
+    schedule_inference: InferenceResult
+    party_inference: InferenceResult
+    score_inference: InferenceResult
+
     final_grade_result: (
         NiaFinalGradeFromImgResult | None
     ) = None
@@ -27,11 +32,19 @@ class InferenceUseCaseResult:
 
     error_reason: str | None = None
 
-    schedule_inference_ms: float = 0.0
-    party_inference_ms: float = 0.0
-    score_inference_ms: float = 0.0
-
     calculation_ms: float = 0.0
+
+    @property
+    def schedule_inference_ms(self) -> float:
+        return self.schedule_inference.total_ms
+
+    @property
+    def party_inference_ms(self) -> float:
+        return self.party_inference.total_ms
+
+    @property
+    def score_inference_ms(self) -> float:
+        return self.score_inference.total_ms
 
     @property
     def success(self) -> bool:
