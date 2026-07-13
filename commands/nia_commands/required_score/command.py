@@ -16,7 +16,7 @@ from .calculator import RequiredScoreCalculator
 # from .embed_builder import build_required_score_embed
 from .container_builder import build_required_score_container
 
-COMMAND = "nia_required_score"
+COMMAND_NAME = "nia_required_score"
 logger = get_logger()
 
 class NiaRequiredScoreCommand(BaseCommand):
@@ -25,7 +25,7 @@ class NiaRequiredScoreCommand(BaseCommand):
     """
 
     async def execute(self, params: NiaRequiredScoreParams):
-        self.log_command_start(COMMAND)
+        self.log_command_start(COMMAND_NAME)
         t0 = time.perf_counter()
 
         # インスタンス生成
@@ -111,14 +111,6 @@ class NiaRequiredScoreCommand(BaseCommand):
             _brief(result_dict.get("SS")), _brief(result_dict.get("SS+")),
             _brief(result_dict.get("SSS")), _brief(result_dict.get("SSS+")),
         )
-
-        # logger.info("Embed構築開始")
-        # self.embed = build_required_score_embed(result, override_pairs=pairs)
-        # logger.info("Embed構築完了: メッセージ送信を開始")
-        # await self.send_embed()
-        # dt = (time.perf_counter() - t0) * 1000
-        # logger.debug(f"nia_required_score_command finished in {dt:.2f} ms")
-        # self.log_command_end("nia_required_score_command")
 
         # View / Container構築 -> メッセージ送信
         logger.debug("View/Container構築開始")

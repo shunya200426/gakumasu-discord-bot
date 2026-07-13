@@ -9,6 +9,7 @@ import numpy as np
 from commands.nia_commands.required_score.calculator import (
     RequiredScoreCalculator,
 )
+from config.nia_settings import NIA
 from models.nia.final_grade.params import (
     NiaFinalGradeParams,
 )
@@ -28,9 +29,10 @@ from .inference_use_case_result import (
 
 logger = get_logger()
 
+
+
 # NIA Masterのパラメータ上限。
-# 将来的に設定ファイル側へ移動してもよい。
-PARAMETER_MAXIMUM = 2300
+PARAMETER_MAXIMUM = NIA['master']['st_max']
 
 
 class InferenceUseCase:

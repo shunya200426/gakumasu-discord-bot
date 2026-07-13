@@ -1,22 +1,24 @@
 # commands/nia_commands/required_score_from_img/command.py
 from __future__ import annotations
 
+import time
 from typing import cast
 
 import cv2
 import discord
 import numpy as np
 from discord import Embed, ui
+
 from commands.nia_commands.required_score.command import NiaRequiredScoreCommand
+from commands.nia_commands.required_score.container_builder import (
+    build_required_score_container,
+)
 from models.nia.required_score_from_img.params import NiaRequiredScoreFromImgParams
-# from commands.nia_commands.required_score.embed_builder import build_required_score_embed
-from commands.nia_commands.required_score.container_builder import build_required_score_container
-# from .embed_builder import build_error_embed
-from .container_builder import build_error_container
-from .inference_use_case import InferenceUseCase
 from services.inference_service import InferenceService
 from utils.logger import get_logger
-import time
+
+from .container_builder import build_error_container
+from .inference_use_case import InferenceUseCase
 
 COMMAND_NAME = "nia_required_score_from_img"
 logger = get_logger()

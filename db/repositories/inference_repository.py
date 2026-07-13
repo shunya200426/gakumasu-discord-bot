@@ -19,8 +19,9 @@ class InferenceRepository:
         guild_id: Optional[int],
         channel_id: Optional[int],
         user_id: Optional[int],
-        command_name: Optional[str],
-        image_path: str,
+        command_name: str,
+        image_role: str,
+        image_path: str | None,
         export_path: Optional[str],
         model_name: str,
         model_format: str,
@@ -45,6 +46,7 @@ class InferenceRepository:
                 channel_id,
                 user_id,
                 command_name,
+                image_role,
                 image_path,
                 export_path,
                 model_name,
@@ -58,7 +60,7 @@ class InferenceRepository:
                 status,
                 created_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
             """,
             (
                 request_id,
@@ -66,6 +68,7 @@ class InferenceRepository:
                 channel_id,
                 user_id,
                 command_name,
+                image_role,
                 image_path,
                 export_path,
                 model_name,
@@ -85,7 +88,6 @@ class InferenceRepository:
 
     def save_detection_result(
         self,
-        request_id: str,
         inference_log_id: int,
         class_name: str,
         confidence: Optional[float],
@@ -103,7 +105,6 @@ class InferenceRepository:
         cursor = self.connection.execute(
             """
             INSERT INTO detection_results (
-                request_id,
                 inference_log_id,
                 class_name,
                 confidence,
@@ -114,10 +115,9 @@ class InferenceRepository:
                 crop_path,
                 created_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
             """,
             (
-                request_id,
                 inference_log_id,
                 class_name,
                 confidence,
@@ -149,6 +149,7 @@ class InferenceRepository:
                 users.user_name,
                 users.display_name,
                 inference_logs.command_name,
+                inference_logs.image_role,
                 inference_logs.image_path,
                 inference_logs.export_path,
                 inference_logs.model_name,
@@ -187,6 +188,7 @@ class InferenceRepository:
                 channel_id,
                 user_id,
                 command_name,
+                image_role,
                 image_path,
                 export_path,
                 model_name,
@@ -215,7 +217,6 @@ class InferenceRepository:
             """
             SELECT
                 id,
-                request_id,
                 inference_log_id,
                 class_name,
                 confidence,

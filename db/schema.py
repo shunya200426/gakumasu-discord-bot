@@ -2,7 +2,6 @@
 
 import sqlite3
 
-
 CREATE_TABLE_QUERIES = [
     """
     CREATE TABLE IF NOT EXISTS registered_servers (
@@ -68,25 +67,52 @@ CREATE_TABLE_QUERIES = [
         guild_id        INTEGER,
         channel_id      INTEGER,
         user_id         INTEGER,
-        command_name    TEXT,
-        image_path      TEXT NOT NULL,
+        command_name    TEXT NOT NULL,
+
+        image_role      TEXT NOT NULL
+            CHECK (
+                image_role IN (
+                    'schedule',
+                    'party',
+                    'score'
+                )
+            ),
+
+        image_path      TEXT,
         export_path     TEXT,
+
         model_name      TEXT NOT NULL,
         model_format    TEXT NOT NULL,
+
         image_width     INTEGER,
         image_height    INTEGER,
+
         preprocess_ms   REAL,
         inference_ms    REAL,
         postprocess_ms  REAL,
         total_ms        REAL,
-        status          TEXT NOT NULL,
-        created_at      TEXT NOT NULL
+
+        status          TEXT NOT NULL
+            CHECK (
+                status IN (
+                    'SUCCESS',
+                    'OCR_FAILED',
+                    'ERROR'
+                )
+            ),
+
+        created_at      TEXT NOT NULL,
+
+        FOREIGN KEY (guild_id)
+            REFERENCES registered_servers(guild_id),
+
+        FOREIGN KEY (user_id)
+            REFERENCES users(user_id)
     );
     """,
     """
     CREATE TABLE IF NOT EXISTS detection_results (
         id                INTEGER PRIMARY KEY AUTOINCREMENT,
-        request_id        TEXT NOT NULL,
         inference_log_id  INTEGER NOT NULL,
         class_name        TEXT NOT NULL,
         confidence        REAL,
@@ -101,6 +127,26 @@ CREATE_TABLE_QUERIES = [
             REFERENCES inference_logs(id)
             ON DELETE CASCADE
     );
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS
+        idx_inference_logs_request_id
+    ON inference_logs(request_id);
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS
+        idx_inference_logs_created_at
+    ON inference_logs(created_at);
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS
+        idx_inference_logs_status
+    ON inference_logs(status);
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS
+        idx_detection_results_inference_log_id
+    ON detection_results(inference_log_id);
     """,
 ]
 

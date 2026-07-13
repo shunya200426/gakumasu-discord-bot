@@ -1,5 +1,4 @@
 import logging
-import time
 from dataclasses import replace
 from typing import Dict, Optional, Tuple
 
@@ -32,7 +31,6 @@ class RequiredScoreCalculator:
         共有コア：逆算ロジック本体
         戻り値: result_dict（"SS" などのキー: dict or "CLEAR不可" or None）
         """
-        t0 = time.perf_counter()
         thresholds = dict(SETTINGS["grade_thresholds"])
         if target_grade is not None and isinstance(target_grade, str):
             g = target_grade.strip().upper().replace("＋", "+")

@@ -445,12 +445,6 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
             _brief(result_dict.get("SSS")), _brief(result_dict.get("SSS+")),
         )
 
-        # Embed構築
-        # logger.info("Embed構築開始")
-        # self.embed = build_required_score_embed(result, override_pairs=pairs)
-        # logger.info("Embed構築完了: メッセージ送信を開始")
-        # await interaction.edit_original_response(content=None, embed=self.embed)
-
 
         # 現在値を保持（モーダル初期値用）
         self._current_values = {
