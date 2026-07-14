@@ -5,6 +5,9 @@ __pycache__/
 # pytest
 .pytest_cache
 
+# 開発者用ツール
+tools/
+
 # Codex
 .codex
 

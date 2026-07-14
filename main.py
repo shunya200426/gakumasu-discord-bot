@@ -22,6 +22,10 @@ from inference.yolo_detector import YoloDetector
 from ocr.tesseract_engine import TesseractEngine
 from services.inference_log_recorder import InferenceLogRecorder
 from services.inference_service import InferenceService
+from services.interaction_access_service import (
+    AccessDeniedReason,
+    InteractionAccessService,
+)
 from services.ocr_service import OcrService
 from utils.context import (
     build_ctx_from_interaction,
@@ -91,6 +95,7 @@ class GakumasuBot(commands.Bot):
         self.ocr_service: OcrService | None = None
         self.inference_service: InferenceService | None = None
         self.inference_log_recorder: InferenceLogRecorder | None = None
+        self.interaction_access_service: InteractionAccessService | None = None
 
     async def setup_hook(self) -> None:
         try:
@@ -139,18 +144,29 @@ class GakumasuBot(commands.Bot):
             log.info("Inference service initialized.")
 
             # InferenceLogRecorderの初期化
+            log.info("Initializing inference log recorder service...")
             if db.inference is None:
                 raise RuntimeError(
                     "InferenceRepositoryが"
                     "初期化されていません。"
                 )
-
             self.inference_log_recorder = (
                 InferenceLogRecorder(
                     repository=db.inference,
                     detector=self.detector,
                 )
             )
+            log.info("Inference log recorder service initialized.")
+
+            # InteractionAccessServiceの初期化
+            log.info("Initializing interaction access service...")
+            self.interaction_access_service = (
+                InteractionAccessService(
+                    guild_repository=db.guilds,
+                    user_repository=db.users,
+                )
+            )
+            log.info("Interaction access service initialized.")
 
             # ====== スラッシュコマンド登録 ======
             for module_name in MODULES:
@@ -329,6 +345,17 @@ async def _notify_dev_about_block(reason: str, interaction: discord.Interaction)
 async def _slash_server_check_impl(
     interaction: discord.Interaction
 ) -> bool:
+    service = interaction.client.interaction_access_service
+
+    if service is None:
+        raise RuntimeError(
+            "InteractionAccessServiceが初期化されていません。"
+        )
+    
+    result = service.check_access(
+        interaction
+    )
+
     guild = interaction.guild
     user = interaction.user
 
@@ -350,21 +377,18 @@ async def _slash_server_check_impl(
     )
 
     # 1) ユーザー単位ブロック
-    block_info = (
-        user_repository.get_block(user_id)
-        if user_id is not None
-        else None
-    )
-    
-    if block_info is not None:
+    if (
+        result.denied_reason
+        == AccessDeniedReason.USER_BLOCKED
+    ):
         user_message = (
-            block_info["user_message"]
+            result.message_override
             or "このアカウントでは現在Botを利用できません。詳細は運営までお問い合わせください。"
         )
 
         reason = (
-            block_info["reason"]
-            or "テスト用ブロック"
+            result.internal_reason
+            or "理由未設定"
         )
 
         asyncio.create_task(
@@ -400,7 +424,10 @@ async def _slash_server_check_impl(
         return False
 
     # 2) DM不可
-    if guild_id is None:
+    if (
+        result.denied_reason
+        == AccessDeniedReason.DM_NOT_ALLOWED
+    ):
         asyncio.create_task(
             _notify_dev_about_block(
                 "dm",
@@ -429,11 +456,11 @@ async def _slash_server_check_impl(
 
         return False
 
-    # DMでないことを確認してからDBを参照
-    guild_info = guild_repository.get_by_guild_id(guild_id)
-
     # 3) 未登録
-    if guild_info is None:
+    if (
+        result.denied_reason
+        == AccessDeniedReason.GUILD_NOT_REGISTERED
+    ):
         log.info(
             "Blocked: unregistered guild %s(%s) user %s (%s)", 
             guild_name, 
@@ -459,7 +486,10 @@ async def _slash_server_check_impl(
         return False
 
     # 4) revoked（停止中）
-    if not guild_info["enabled"]:
+    if (
+        result.denied_reason
+        == AccessDeniedReason.GUILD_DISABLED
+    ):
         log.info(
             "Blocked: revoked guild %s(%s)",
             guild_name,
