@@ -69,6 +69,31 @@ class GuildRepository:
             (now, guild_id),
         )
 
+    def enable(
+        self,
+        guild_id: int,
+    ) -> None:
+        """
+        登録済みサーバーを利用可能な状態に戻す。
+        """
+        now = datetime.now(
+            timezone.utc
+        ).isoformat()
+
+        self.connection.execute(
+            """
+            UPDATE registered_servers
+            SET
+                enabled = 1,
+                updated_at = ?
+            WHERE guild_id = ?;
+            """,
+            (
+                now,
+                guild_id,
+            ),
+        )
+
     def is_registered(self, guild_id: int) -> bool:
         """
         サーバーが有効登録されているか確認する。

@@ -24,6 +24,7 @@ from services.inference_log_recorder import InferenceLogRecorder
 from services.inference_service import InferenceService
 from services.interaction_access_service import (
     AccessDeniedReason,
+    InteractionAccessResult,
     InteractionAccessService,
 )
 from services.ocr_service import OcrService
@@ -342,191 +343,203 @@ async def _notify_dev_about_block(reason: str, interaction: discord.Interaction)
 
 
 # ====== スラッシュ用チェックの実装（トップレベルに一つだけ配置） ======
+async def _send_internal_error_message(
+    interaction: discord.Interaction,
+) -> None:
+    embed = Embed(
+        color=0xE53935,
+        description=(
+            "### ⚠️ 内部エラーが発生しました\n"
+            "しばらく時間を空けてから、"
+            "もう一度お試しください。"
+        ),
+    )
+
+    try:
+        if interaction.response.is_done():
+            await interaction.followup.send(
+                embed=embed,
+                ephemeral=True,
+            )
+        else:
+            await interaction.response.send_message(
+                embed=embed,
+                ephemeral=True,
+            )
+
+    except Exception:
+        log.debug(
+            "Failed to send internal error message",
+            exc_info=True,
+        )
+
+ACCESS_DENIED_COLOR_MAP = {
+    AccessDeniedReason.USER_BLOCKED: 0xE74C3C,
+    AccessDeniedReason.DM_NOT_ALLOWED: 0xFF9900,
+    AccessDeniedReason.GUILD_NOT_REGISTERED: 0xE53935,
+    AccessDeniedReason.GUILD_DISABLED: 0xE53935,
+}
+
 async def _slash_server_check_impl(
-    interaction: discord.Interaction
+    interaction: discord.Interaction,
 ) -> bool:
-    service = interaction.client.interaction_access_service
+    service = (
+        interaction.client.interaction_access_service
+    )
 
     if service is None:
         raise RuntimeError(
-            "InteractionAccessServiceが初期化されていません。"
+            "InteractionAccessServiceが"
+            "初期化されていません。"
         )
-    
-    result = service.check_access(
-        interaction
-    )
 
     guild = interaction.guild
     user = interaction.user
 
-    guild_id = getattr(guild, "id", None)
-    guild_name = getattr(guild, "name", "(DMまたは不明)")
-    user_id = getattr(user, "id", None)
-    user_name = getattr(user, "display_name", "不明")
+    guild_id = getattr(
+        guild,
+        "id",
+        None,
+    )
+    guild_name = getattr(
+        guild,
+        "name",
+        "(DMまたは不明)",
+    )
+    user_id = getattr(
+        user,
+        "id",
+        None,
+    )
+
+    command_name = getattr(
+        getattr(
+            interaction,
+            "command",
+            None,
+        ),
+        "qualified_name",
+        None,
+    )
 
     log.debug(
-        "slash_server_check called: guild=%s id=%s user=%s cmd=%s",
+        "slash_server_check called: "
+        "guild=%s id=%s user=%s cmd=%s",
         guild_name,
         guild_id,
         user_id,
-        getattr(
-            getattr(interaction, "command", None),
-            "qualified_name",
-            None,
-        ),
+        command_name,
     )
 
-    # 1) ユーザー単位ブロック
-    if (
-        result.denied_reason
-        == AccessDeniedReason.USER_BLOCKED
-    ):
-        user_message = (
-            result.message_override
-            or "このアカウントでは現在Botを利用できません。詳細は運営までお問い合わせください。"
+    try:
+        result = service.check_access(
+            interaction
         )
 
-        reason = (
-            result.internal_reason
-            or "理由未設定"
-        )
-
-        asyncio.create_task(
-            _notify_dev_about_block(
-                "user_blocked", 
-                interaction
-            )
-        )
-        
-        try:
-            embed = Embed(
-                color=0xE74C3C, 
-                description=user_message
-            )
-            await interaction.response.send_message(
-                embed=embed, 
-                ephemeral=False
-            )
-        
-        except Exception:
-            log.debug(
-                "Failed to respond for user-blocked case", 
-                exc_info=True
-            )
-
-        log.info(
-            "Blocked (user): user_id=%s name=%s reason=%s", 
-            user_id, 
-            getattr(interaction.user, "display_name", None),
-            reason,
-        )
-        
-        return False
-
-    # 2) DM不可
-    if (
-        result.denied_reason
-        == AccessDeniedReason.DM_NOT_ALLOWED
-    ):
-        asyncio.create_task(
-            _notify_dev_about_block(
-                "dm",
-                interaction,
-            )
-        )
-
-        try:
-            embed = Embed(
-                color=0xFF9900,
-                description=(
-                    "### このコマンドは"
-                    "サーバー内でのみ使用できます"
-                ),
-            )
-            await interaction.response.send_message(
-                embed=embed,
-                ephemeral=False,
-            )
-
-        except Exception:
-            log.debug(
-                "Failed to respond for DM-case",
-                exc_info=True,
-            )
-
-        return False
-
-    # 3) 未登録
-    if (
-        result.denied_reason
-        == AccessDeniedReason.GUILD_NOT_REGISTERED
-    ):
-        log.info(
-            "Blocked: unregistered guild %s(%s) user %s (%s)", 
-            guild_name, 
-            guild_id, 
-            user_name, 
-            user
-        )
-
-        # 開発者へ非同期で通知
-        asyncio.create_task(_notify_dev_about_block("unregistered", interaction))
-
-        try:
-            embed = Embed(
-                color=0xE53935,
-                description="# ⚠️ このサーバーはまだ登録されていません。\n### 導入をご希望の場合は、運営までご連絡ください。"
-            )
-            await interaction.response.send_message(
-                embed=embed,
-                ephemeral=False
-            )
-        except Exception:
-            log.debug("Failed to respond for unregistered case (already responded?)", exc_info=True)
-        return False
-
-    # 4) revoked（停止中）
-    if (
-        result.denied_reason
-        == AccessDeniedReason.GUILD_DISABLED
-    ):
-        log.info(
-            "Blocked: revoked guild %s(%s)",
-            guild_name,
+    except Exception:
+        log.exception(
+            "Interaction access check failed: "
+            "guild_id=%s user_id=%s cmd=%s",
             guild_id,
+            user_id,
+            command_name,
         )
 
-        asyncio.create_task(
-            _notify_dev_about_block(
-                "revoked",
-                interaction,
-            )
+        await _send_internal_error_message(
+            interaction
         )
-
-        try:
-            embed = Embed(
-                color=0xE53935,
-                description=(
-                    "### 🚫 このサーバーでは現在"
-                    "Botの利用が停止されています。"
-                    "運営までお問い合わせください。"
-                ),
-            )
-            await interaction.response.send_message(
-                embed=embed,
-                ephemeral=False,
-            )
-
-        except Exception:
-            log.debug(
-                "Failed to respond for revoked case",
-                exc_info=True,
-            )
 
         return False
 
-    # 5) 許可
-    return True
+    if result.allowed:
+        return True
+
+    denied_reason = result.denied_reason
+
+    if denied_reason is None:
+        log.error(
+            "Interaction access denied without "
+            "denied_reason: guild_id=%s "
+            "user_id=%s cmd=%s",
+            guild_id,
+            user_id,
+            command_name,
+        )
+
+        await _send_internal_error_message(
+            interaction
+        )
+
+        return False
+
+    asyncio.create_task(
+        _notify_dev_about_block(
+            denied_reason.value,
+            interaction,
+        )
+    )
+
+    await _send_access_denied_message(
+        interaction=interaction,
+        result=result,
+    )
+
+    log.info(
+        "Interaction access denied: "
+        "reason=%s guild=%s(%s) "
+        "user=%s(%s) cmd=%s "
+        "internal_reason=%s",
+        denied_reason.value,
+        guild_name,
+        guild_id,
+        getattr(
+            user,
+            "display_name",
+            None,
+        ),
+        user_id,
+        command_name,
+        result.internal_reason,
+    )
+
+    return False
+
+
+async def _send_access_denied_message(
+    interaction: discord.Interaction,
+    result: InteractionAccessResult,
+) -> None:
+    color = ACCESS_DENIED_COLOR_MAP.get(
+        result.denied_reason,
+        0xE53935,
+    )
+
+    message = (
+        result.user_message
+        or "このコマンドは現在実行できません。"
+    )
+
+    embed = Embed(
+        color=color,
+        description=message,
+    )
+
+    try:
+        await interaction.response.send_message(
+            embed=embed,
+            ephemeral=False,
+        )
+
+    except Exception:
+        log.debug(
+            "Failed to send access denied message: reason=%s",
+            (
+                result.denied_reason.value
+                if result.denied_reason is not None
+                else None
+            ),
+            exc_info=True,
+        )
 
 
 # 追加: ログ初期化（本番も開発もこれでOK）

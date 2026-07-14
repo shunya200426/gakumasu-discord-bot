@@ -26,15 +26,9 @@ class InteractionAccessResult:
     """
     アクセス判定結果。
     """
-
     allowed: bool
-
-    denied_reason: (
-        AccessDeniedReason | None
-    ) = None
-
-    message_override: str | None = None
-
+    denied_reason: AccessDeniedReason | None = None
+    user_message: str | None = None
     internal_reason: str | None = None
 
 
@@ -154,7 +148,7 @@ class InteractionAccessService:
         return InteractionAccessResult(
             allowed=False,
             denied_reason=AccessDeniedReason.USER_BLOCKED,
-            message_override=(
+            user_message=(
                 block_info["user_message"]
             ),
             internal_reason=(
