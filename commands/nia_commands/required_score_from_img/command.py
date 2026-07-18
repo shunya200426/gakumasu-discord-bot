@@ -216,7 +216,7 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
 
         try:
             consent_result = (
-                await self.resolve_image_consent(
+                self.resolve_image_consent(
                     interaction=interaction,
                     requested=(
                         params.image_save_consent
@@ -243,15 +243,23 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
         # 入力画像の確認
         if params.schedule_img.content_type and not params.schedule_img.content_type.startswith("image/"):
             logger.warning("input img error")
-            return await interaction.edit_original_response(
+            await interaction.edit_original_response(
                 content="画像ファイルを添付してください"
             )
+            await self.send_image_consent_notification(
+                consent_result
+            )
+            return
         
         if params.party_img.content_type and not params.party_img.content_type.startswith("image/"):
             logger.warning("input img error")
-            return await interaction.edit_original_response(
+            await interaction.edit_original_response(
                 content="画像ファイルを添付してください"
             )
+            await self.send_image_consent_notification(
+                consent_result
+            )
+            return
 
         schedule_img_bytes: bytes | None = None
         party_img_bytes: bytes | None = None
@@ -364,6 +372,10 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
                     bonus_dict=bonus_dict,
                 )
 
+                await self.send_image_consent_notification(
+                    consent_result
+                )
+
                 # ▼ 失敗時も保存する（同意時）
                 await self.maybe_archive_inputs(
                     interaction=interaction,
@@ -400,6 +412,10 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
             )
             logger.info("ERROR Embed構築完了: メッセージ送信を開始")
             await interaction.edit_original_response(content=None, embed=err)
+
+            await self.send_image_consent_notification(
+                consent_result
+            )
 
             # ▼ 失敗時も保存する（同意時）: 取得済みバイトがなければ再読込を試みる
             try:
@@ -468,7 +484,14 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
 
         layout.add_item(container)
         logger.debug("View/Container構築完了: メッセージ送信を開始")
-        await interaction.followup.send(view=layout)
+        await interaction.edit_original_response(
+            content=None,
+            embed=None,
+            view=layout,
+        )
+        await self.send_image_consent_notification(
+            consent_result
+        )
         self.message = await interaction.original_response()
 
         # 送信後：同意時のみ保存（共通化）

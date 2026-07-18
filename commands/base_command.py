@@ -256,14 +256,14 @@ class BaseCommand(ABC):
 
         return service
 
-    async def resolve_image_consent(
+    def resolve_image_consent(
         self,
         *,
         interaction: discord.Interaction,
         requested: bool | None,
     ) -> ImageConsentResult:
         """
-        画像保存同意を解決し、変更時のみ通知する。
+        画像保存同意を解決する。
 
         同意結果は呼び出し側へ返し、このインスタンスには保持しない。
         """
@@ -275,8 +275,19 @@ class BaseCommand(ABC):
             requested=requested,
         )
 
+        return result
+
+    async def send_image_consent_notification(
+        self,
+        result: ImageConsentResult,
+    ) -> None:
+        """
+        同意状態が変化した場合のみユーザーへ通知する。
+
+        original response確定後に呼び出すことを前提とする。
+        """
         if not result.changed:
-            return result
+            return
 
         if result.current:
             message = (
@@ -295,8 +306,6 @@ class BaseCommand(ABC):
             content=message,
             ephemeral=True,
         )
-
-        return result
 
     @property
     def request_id(self) -> str:
@@ -354,20 +363,27 @@ class BaseCommand(ABC):
         """
         Interactionの応答状態に応じてメッセージを送信する。
         """
+        kwargs: dict = {
+            "ephemeral": ephemeral,
+        }
+
+        if content is not None:
+            kwargs["content"] = content
+
+        if embed is not None:
+            kwargs["embed"] = embed
+
+        if view is not None:
+            kwargs["view"] = view
+
         try:
             if self.interaction.response.is_done():
                 await self.interaction.followup.send(
-                    content=content,
-                    embed=embed,
-                    view=view,
-                    ephemeral=ephemeral,
+                    **kwargs,
                 )
             else:
                 await self.interaction.response.send_message(
-                    content=content,
-                    embed=embed,
-                    view=view,
-                    ephemeral=ephemeral,
+                    **kwargs,
                 )
 
         except Exception:

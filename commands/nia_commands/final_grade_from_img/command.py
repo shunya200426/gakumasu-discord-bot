@@ -347,7 +347,7 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
 
         try:
             consent_result = (
-                await self.resolve_image_consent(
+                self.resolve_image_consent(
                     interaction=interaction,
                     requested=(
                         params.image_save_consent
@@ -570,6 +570,10 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
                     score_dict=score_dict,
                 )
 
+                await self.send_image_consent_notification(
+                    consent_result
+                )
+
                 await self.maybe_archive_inputs(
                     interaction=interaction,
                     save_agree=(
@@ -632,6 +636,10 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
                 content=None,
                 embed=error_embed,
                 view=None,
+            )
+
+            await self.send_image_consent_notification(
+                consent_result
             )
 
             archive_images = (
@@ -736,6 +744,10 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
             content=None,
             embed=None,
             view=view,
+        )
+
+        await self.send_image_consent_notification(
+            consent_result
         )
 
         command_total_ms = (

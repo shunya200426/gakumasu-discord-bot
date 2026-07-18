@@ -25,7 +25,6 @@ from models.nia.required_score_from_img.params import (
 )
 from services.image_consent_service import ImageConsentResult
 
-
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 
 
@@ -68,11 +67,9 @@ def test_resolve_image_consent_passes_requested_value(
     interaction, service = build_interaction(expected)
     command = DummyCommand(interaction)
 
-    actual = asyncio.run(
-        command.resolve_image_consent(
-            interaction=interaction,
-            requested=requested,
-        )
+    actual = command.resolve_image_consent(
+        interaction=interaction,
+        requested=requested,
     )
 
     assert actual is expected
@@ -140,10 +137,15 @@ def test_resolve_image_consent_notifies_only_when_changed(
     interaction, _ = build_interaction(result)
     command = DummyCommand(interaction)
 
+    resolved = command.resolve_image_consent(
+        interaction=interaction,
+        requested=result.current,
+    )
+    interaction.followup.send.assert_not_called()
+
     asyncio.run(
-        command.resolve_image_consent(
-            interaction=interaction,
-            requested=result.current,
+        command.send_image_consent_notification(
+            resolved
         )
     )
 
@@ -152,8 +154,6 @@ def test_resolve_image_consent_notifies_only_when_changed(
     else:
         interaction.followup.send.assert_awaited_once_with(
             content=expected_message,
-            embed=None,
-            view=None,
             ephemeral=True,
         )
 
@@ -170,10 +170,13 @@ def test_notification_failure_does_not_discard_consent_result() -> None:
     )
     command = DummyCommand(interaction)
 
-    actual = asyncio.run(
-        command.resolve_image_consent(
-            interaction=interaction,
-            requested=True,
+    actual = command.resolve_image_consent(
+        interaction=interaction,
+        requested=True,
+    )
+    asyncio.run(
+        command.send_image_consent_notification(
+            actual
         )
     )
 
