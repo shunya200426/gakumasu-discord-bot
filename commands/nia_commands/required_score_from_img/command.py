@@ -214,6 +214,32 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
         interaction: discord.Interaction = self.interaction
         await interaction.response.defer(thinking=True, ephemeral=False)
 
+        try:
+            consent_result = (
+                await self.resolve_image_consent(
+                    interaction=interaction,
+                    requested=(
+                        params.image_save_consent
+                    ),
+                )
+            )
+        except Exception:
+            logger.exception(
+                "Failed to resolve image save consent"
+            )
+            await interaction.edit_original_response(
+                content=(
+                    "画像保存設定を確認できませんでした。"
+                    "時間をおいて、もう一度お試しください。"
+                ),
+                embed=None,
+                view=None,
+            )
+            self.log_command_end(
+                COMMAND_NAME
+            )
+            return
+
         # 入力画像の確認
         if params.schedule_img.content_type and not params.schedule_img.content_type.startswith("image/"):
             logger.warning("input img error")
@@ -341,7 +367,9 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
                 # ▼ 失敗時も保存する（同意時）
                 await self.maybe_archive_inputs(
                     interaction=interaction,
-                    save_agree=params.save_agree,
+                    save_agree=(
+                        consent_result.current
+                    ),
                     command=COMMAND_NAME,
                     images=self._build_archive_images(
                         params=params,
@@ -391,7 +419,9 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
 
             await self.maybe_archive_inputs(
                 interaction=interaction,
-                save_agree=params.save_agree,
+                save_agree=(
+                    consent_result.current
+                ),
                 command=COMMAND_NAME,
                 images=images,
                 meta={
@@ -444,7 +474,9 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
         # 送信後：同意時のみ保存（共通化）
         await self.maybe_archive_inputs(
             interaction=interaction,
-            save_agree=params.save_agree,
+            save_agree=(
+                consent_result.current
+            ),
             command="nia_required_score_from_img",
             images=self._build_archive_images(
                 params=params,

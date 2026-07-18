@@ -22,7 +22,10 @@ from commands.groups import nia
     目標スコア="目標スコアの設定",
     チャレンジアイテム="チャレンジアイテム倍率の変更",
     アイドル強化月間="アイドル強化月間を適用しますか？",
-    画像ログ="ご協力いただける場合はTrueを選んでください（入力画像を保存し、30日後に自動削除されます）"
+    画像保存=(
+        "精度向上用の画像保存設定"
+        "（未指定の場合は現在の設定を維持します）"
+    ),
 )
 
 @app_commands.choices(
@@ -67,7 +70,7 @@ async def nia_required_score_from_img_command(
     目標スコア: Optional[app_commands.Range[int, 0]] = None,
     チャレンジアイテム: app_commands.Range[int, 0] = NIA["master"]["challenge_bonus_max"],
     アイドル強化月間: bool = False,
-    画像ログ: bool = False
+    画像保存: bool | None = None,
 ):
     # Params組み立て
     params = NiaRequiredScoreFromImgParams(
@@ -80,7 +83,7 @@ async def nia_required_score_from_img_command(
         target_score=目標スコア,
         challenge_P_item=チャレンジアイテム,
         is_boost_active=アイドル強化月間,
-        save_agree=画像ログ
+        image_save_consent=画像保存,
     )
 
     # コマンド処理

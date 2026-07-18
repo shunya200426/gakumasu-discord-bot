@@ -4,6 +4,8 @@ __pycache__/
 
 # pytest
 .pytest_cache
+.coverage
+htmlcov/
 
 # 開発者用ツール
 tools/
@@ -25,9 +27,6 @@ logs/
 
 # OCR用の入力画像・一時データ
 data_inputs/
-
-# テスト
-tests/
 
 # 登録サーバー情報
 config/blocklist.json

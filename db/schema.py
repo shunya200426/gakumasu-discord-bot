@@ -18,7 +18,10 @@ CREATE_TABLE_QUERIES = [
         user_id INTEGER PRIMARY KEY,
         user_name TEXT,
         display_name TEXT,
-        updated_at TEXT NOT NULL
+        updated_at TEXT NOT NULL,
+        image_save_consent INTEGER
+            CHECK (image_save_consent IN (0, 1)),
+        image_save_consent_updated_at TEXT
     );
     """,
     """

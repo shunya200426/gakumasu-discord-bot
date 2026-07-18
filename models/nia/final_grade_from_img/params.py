@@ -27,5 +27,5 @@ class NiaFinalGradeFromImgParams:
     # アイドル強化月間
     is_boost_active: bool
     
-    # 画像ログ
-    save_agree: bool
+    # 今回指定された画像保存同意
+    image_save_consent: bool | None = None

@@ -14,6 +14,10 @@ import discord
 from discord import Embed, Interaction, ui
 
 from config.paths import PROVIDED_UPLOAD_DIR
+from services.image_consent_service import (
+    ImageConsentResult,
+    ImageConsentService,
+)
 from services.inference_log_recorder import InferenceLogRecorder
 from utils.context import build_ctx_from_interaction
 from utils.logger import get_logger, use_log_context
@@ -227,6 +231,72 @@ class BaseCommand(ABC):
             )
 
         return recorder
+
+    def get_image_consent_service(
+        self,
+        interaction: discord.Interaction,
+    ) -> ImageConsentService:
+        """
+        Botが保持しているImageConsentServiceを取得する。
+        """
+        service = cast(
+            ImageConsentService | None,
+            getattr(
+                interaction.client,
+                "image_consent_service",
+                None,
+            ),
+        )
+
+        if service is None:
+            raise RuntimeError(
+                "ImageConsentServiceが"
+                "初期化されていません。"
+            )
+
+        return service
+
+    async def resolve_image_consent(
+        self,
+        *,
+        interaction: discord.Interaction,
+        requested: bool | None,
+    ) -> ImageConsentResult:
+        """
+        画像保存同意を解決し、変更時のみ通知する。
+
+        同意結果は呼び出し側へ返し、このインスタンスには保持しない。
+        """
+        service = self.get_image_consent_service(
+            interaction
+        )
+        result = service.resolve(
+            user_id=interaction.user.id,
+            requested=requested,
+        )
+
+        if not result.changed:
+            return result
+
+        if result.current:
+            message = (
+                "画像保存へのご協力ありがとうございます！\n"
+                "今後は設定を変更するまで、入力画像および"
+                "推論・切り抜き画像を保存します。"
+            )
+        else:
+            message = (
+                "画像保存を無効にしました。\n"
+                "今回以降の入力画像および推論・切り抜き画像は"
+                "保存されません。"
+            )
+
+        await self._safe_send(
+            content=message,
+            ephemeral=True,
+        )
+
+        return result
 
     @property
     def request_id(self) -> str:
@@ -483,11 +553,6 @@ class BaseCommand(ABC):
         command: str,
         images: dict[str, tuple[str, bytes]],
         meta: dict,
-        thank_you: str = (
-            "ご協力ありがとうございます！"
-            "精度向上のため入力画像を保存します。"
-            "保存期間は30日で自動的に破棄します。"
-        ),
     ) -> None:
         """
         ユーザーが同意した場合のみ入力画像を保存する。
@@ -496,18 +561,6 @@ class BaseCommand(ABC):
         """
         if not save_agree:
             return
-
-        try:
-            await interaction.followup.send(
-                thank_you,
-                ephemeral=True,
-            )
-
-        except Exception:
-            logger.debug(
-                "Failed to send archive thank-you message",
-                exc_info=True,
-            )
 
         try:
             await BaseCommand._archive_async(

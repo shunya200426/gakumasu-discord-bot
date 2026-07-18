@@ -65,6 +65,57 @@ class UserRepository:
         )
         return cursor.fetchone()
 
+    def get_image_save_consent(
+        self,
+        user_id: int,
+    ) -> bool | None:
+        """
+        ユーザーの画像保存同意状態を取得する。
+
+        未選択またはユーザーが存在しない場合はNoneを返す。
+        """
+        cursor = self.connection.execute(
+            """
+            SELECT image_save_consent
+            FROM users
+            WHERE user_id = ?;
+            """,
+            (user_id,),
+        )
+        row = cursor.fetchone()
+
+        if row is None or row["image_save_consent"] is None:
+            return None
+
+        return bool(row["image_save_consent"])
+
+    def set_image_save_consent(
+        self,
+        user_id: int,
+        consent: bool,
+    ) -> None:
+        """
+        ユーザーの画像保存同意状態と更新日時を更新する。
+
+        トランザクションの確定は呼び出し側が担当する。
+        """
+        now = datetime.now(timezone.utc).isoformat()
+
+        self.connection.execute(
+            """
+            UPDATE users
+            SET
+                image_save_consent = ?,
+                image_save_consent_updated_at = ?
+            WHERE user_id = ?;
+            """,
+            (
+                int(consent),
+                now,
+                user_id,
+            ),
+        )
+
     def add_block(
         self,
         user_id: int,

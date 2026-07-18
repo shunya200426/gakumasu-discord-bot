@@ -345,6 +345,32 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
             ephemeral=False,
         )
 
+        try:
+            consent_result = (
+                await self.resolve_image_consent(
+                    interaction=interaction,
+                    requested=(
+                        params.image_save_consent
+                    ),
+                )
+            )
+        except Exception:
+            logger.exception(
+                "Failed to resolve image save consent"
+            )
+            await interaction.edit_original_response(
+                content=(
+                    "画像保存設定を確認できませんでした。"
+                    "時間をおいて、もう一度お試しください。"
+                ),
+                embed=None,
+                view=None,
+            )
+            self.log_command_end(
+                COMMAND_NAME
+            )
+            return
+
         # 例外発生時の画像保存でも参照できるよう、
         # tryより前で初期化しておく。
         schedule_img_bytes: bytes | None = None
@@ -546,7 +572,9 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
 
                 await self.maybe_archive_inputs(
                     interaction=interaction,
-                    save_agree=params.save_agree,
+                    save_agree=(
+                        consent_result.current
+                    ),
                     command=COMMAND_NAME,
                     images=self._build_archive_images(
                         params=params,
@@ -624,7 +652,9 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
             if archive_images:
                 await self.maybe_archive_inputs(
                     interaction=interaction,
-                    save_agree=params.save_agree,
+                    save_agree=(
+                        consent_result.current
+                    ),
                     command=COMMAND_NAME,
                     images=archive_images,
                     meta={
@@ -718,7 +748,9 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
         # ============================================
         await self.maybe_archive_inputs(
             interaction=interaction,
-            save_agree=params.save_agree,
+            save_agree=(
+                consent_result.current
+            ),
             command=COMMAND_NAME,
             images=self._build_archive_images(
                 params=params,

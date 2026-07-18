@@ -2,7 +2,7 @@
 
 import discord
 from dataclasses import dataclass
-from typing import Optional, Literal
+from typing import Optional
 
 @dataclass
 class NiaRequiredScoreFromImgParams:
@@ -29,5 +29,5 @@ class NiaRequiredScoreFromImgParams:
     target_grade: Optional[str] = None   
     target_score: Optional[int] = None   
 
-    # 画像ログの同意
-    save_agree: bool = False
+    # 今回指定された画像保存同意
+    image_save_consent: bool | None = None

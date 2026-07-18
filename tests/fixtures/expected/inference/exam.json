@@ -1,0 +1,27 @@
+{
+  "parameters": {
+    "vo": null,
+    "da": null,
+    "vi": null,
+    "fans": null,
+    "star": null
+  },
+  "bonuses": {
+    "vo": null,
+    "da": null,
+    "vi": null,
+    "kirameki": null
+  },
+  "scores": {
+    "sum_score": 492948,
+    "vo": 124676,
+    "da": 161970,
+    "vi": 206302
+  },
+  "required_detection_classes": [
+    "exam_score",
+    "vo_score",
+    "da_score",
+    "vi_score"
+  ]
+}
