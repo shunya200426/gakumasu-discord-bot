@@ -18,6 +18,7 @@ from services.image_consent_service import (
     ImageConsentResult,
     ImageConsentService,
 )
+from services.image_storage_service import ImageStorageService
 from services.inference_log_recorder import InferenceLogRecorder
 from utils.context import build_ctx_from_interaction
 from utils.logger import get_logger, use_log_context
@@ -251,6 +252,30 @@ class BaseCommand(ABC):
         if service is None:
             raise RuntimeError(
                 "ImageConsentServiceが"
+                "初期化されていません。"
+            )
+
+        return service
+    
+    def get_image_storage_service(
+        self,
+        interaction: discord.Interaction,
+    ) -> ImageStorageService:
+        """
+        Botが保持しているImageStorageServiceを取得する。
+        """
+        service = cast(
+            ImageStorageService | None,
+            getattr(
+                interaction.client,
+                "image_storage_service",
+                None,
+            ),
+        )
+
+        if service is None:
+            raise RuntimeError(
+                "ImageStorageServiceが"
                 "初期化されていません。"
             )
 

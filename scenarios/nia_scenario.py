@@ -1,16 +1,14 @@
 # scenarios/nia_scenario.py
 
-from .base_scenario import ScenarioBase
-from config.constants import MASTER
-from config.accessors import (
-    get_character_trend,
-    get_nia_audition_status_block,
-)
+import math
+
+from config.settings import SETTINGS
 from models.nia.final_grade.params import NiaFinalGradeParams
 from models.nia.final_grade.result import NiaFinalGradeResult
-from config.settings import SETTINGS
 from utils.logger import get_logger
-import math
+
+from .base_scenario import ScenarioBase
+
 
 class NiaScenario(ScenarioBase):
     def __init__(self, mode: str):
@@ -159,9 +157,9 @@ class NiaScenario(ScenarioBase):
         self.log.debug("start: calculate_get_status character=%s audition=%s", character, audition)
 
         # キャラクターの流行情報を取得して整理
-        trend = get_character_trend(character)
+        trend = SETTINGS["characters"][character]["trend"]
         trend_type = trend["type"]  # "balanced" or "focused"
-        trend_data = get_nia_audition_status_block(self.mode, audition, trend_type)
+        trend_data = self.settings[self.mode][audition]["status"][trend_type]
 
         score_info = {"Vo": vo_score, "Da": da_score, "Vi": vi_score}
         bonus_info = {"Vo": vo_bonus, "Da": da_bonus, "Vi": vi_bonus}
@@ -200,7 +198,7 @@ class NiaScenario(ScenarioBase):
             self.log.debug("status_bonus trend=%s raw=%.2f", trend_key, status_bonus)
 
             # プロとマスターで場合分けしてそれぞれの流行に格納
-            if self.mode == MASTER:
+            if self.mode == "master":
                 item_bonus = math.floor(get_status * challenge_P_item / 100) * (1 + bonus_info[stat_name] / 100)
                 total = math.floor(get_status) + math.floor(status_bonus) + math.floor(item_bonus)
                 self.log.debug("item_bonus %.2f (challenge=%d%%)", item_bonus, challenge_P_item)
@@ -305,8 +303,6 @@ class NiaScenario(ScenarioBase):
         gained = math.floor(raw)
 
         # 最低0、最大上限
-        if gained < 0:
-            gained = 0
-        if gained > kirameki_cap:
-            gained = kirameki_cap
+        gained = max(gained, 0)
+        gained = min(gained, kirameki_cap)
         return gained

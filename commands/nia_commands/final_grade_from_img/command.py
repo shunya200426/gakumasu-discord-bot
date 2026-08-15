@@ -49,7 +49,7 @@ _LABEL2KEY = {
 class ParamEditModal(ui.Modal):
     def __init__(
         self,
-        cmd: "NiaFinalGradeFromImgCommand",
+        cmd: NiaFinalGradeFromImgCommand,
         selected_params: list[str],
         current: dict,
     ) -> None:
@@ -206,7 +206,7 @@ class ParamEditModal(ui.Modal):
 class ParamSelect(ui.Select):
     def __init__(
         self,
-        cmd: "NiaFinalGradeFromImgCommand",
+        cmd: NiaFinalGradeFromImgCommand,
     ) -> None:
         is_boost = bool(
             getattr(
