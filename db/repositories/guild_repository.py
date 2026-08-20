@@ -2,7 +2,6 @@
 
 import sqlite3
 from datetime import datetime, timezone
-from typing import Optional
 
 
 class GuildRepository:
@@ -16,7 +15,7 @@ class GuildRepository:
     def register(
         self,
         guild_id: int,
-        guild_name: Optional[str],
+        guild_name: str | None,
         community_name: str,
     ) -> None:
         """
@@ -110,7 +109,7 @@ class GuildRepository:
 
         return cursor.fetchone() is not None
 
-    def get_by_guild_id(self, guild_id: int) -> Optional[sqlite3.Row]:
+    def get_by_guild_id(self, guild_id: int) -> sqlite3.Row | None:
         """
         guild_id からサーバー情報を取得する。
         """

@@ -224,12 +224,11 @@ class ImageStorageService:
             + "\n"
         )
 
-        with self._metadata_lock:
-            with metadata_path.open(
-                "a",
-                encoding="utf-8",
-            ) as file:
-                file.write(serialized)
+        with self._metadata_lock, metadata_path.open(
+            "a",
+            encoding="utf-8",
+        ) as file:
+            file.write(serialized)
 
     def _purge_expired_directories(self) -> None:
         """

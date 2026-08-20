@@ -371,11 +371,12 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
             )
             return
 
-        # 例外発生時の画像保存でも参照できるよう、
+        # 後続処理から安全に参照できるよう、
         # tryより前で初期化しておく。
         schedule_img_bytes: bytes | None = None
         party_img_bytes: bytes | None = None
         score_img_bytes: bytes | None = None
+        saved_input_paths: dict[str, str] = {}
 
         try:
             # ========================================
@@ -423,6 +424,46 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
                 "time=%.3f ms",
                 image_load_ms,
             )
+
+            if True:
+                raise OSError("test storage failure")
+
+            # ========================================
+            # 同意済み入力画像の保存
+            # ========================================
+            if consent_result.current:
+                try:
+                    image_storage_service = (
+                        self.get_image_storage_service(
+                            interaction
+                        )
+                    )
+
+                    saved_input_paths = (
+                        await image_storage_service.save_input_images(
+                            guild_id=interaction.guild_id,
+                            user_id=interaction.user.id,
+                            command_name=COMMAND_NAME,
+                            request_id=self.request_id,
+                            images=self._build_archive_images(
+                                params=params,
+                                schedule_img_bytes=schedule_img_bytes,
+                                party_img_bytes=party_img_bytes,
+                                score_img_bytes=score_img_bytes,
+                            ),
+                            metadata={
+                                "mode": params.mode,
+                                "audition": params.audition,
+                                "character": params.character,
+                            },
+                        )
+                    )
+
+                except Exception:
+                    logger.warning(
+                        "Failed to save input images",
+                        exc_info=True,
+                    )
 
             # ========================================
             # OpenCV画像へのデコード
@@ -486,7 +527,7 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
                     user_id=interaction.user.id,
                     command_name=COMMAND_NAME,
                     image_role="schedule",
-                    image_path=None,
+                    image_path=saved_input_paths.get("schedule"),
                     export_path=None,
                     inference_result=(
                         use_case_result.schedule_inference
@@ -501,7 +542,7 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
                     user_id=interaction.user.id,
                     command_name=COMMAND_NAME,
                     image_role="party",
-                    image_path=None,
+                    image_path=saved_input_paths.get("party"),
                     export_path=None,
                     inference_result=(
                         use_case_result.party_inference
@@ -516,7 +557,7 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
                     user_id=interaction.user.id,
                     command_name=COMMAND_NAME,
                     image_role="score",
-                    image_path=None,
+                    image_path=saved_input_paths.get("score"),
                     export_path=None,
                     inference_result=(
                         use_case_result.score_inference
@@ -574,45 +615,6 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
                     consent_result
                 )
 
-                await self.maybe_archive_inputs(
-                    interaction=interaction,
-                    save_agree=(
-                        consent_result.current
-                    ),
-                    command=COMMAND_NAME,
-                    images=self._build_archive_images(
-                        params=params,
-                        schedule_img_bytes=(
-                            schedule_img_bytes
-                        ),
-                        party_img_bytes=(
-                            party_img_bytes
-                        ),
-                        score_img_bytes=(
-                            score_img_bytes
-                        ),
-                    ),
-                    meta={
-                        "status": "ocr_failed",
-                        "error": error_reason,
-                        "ocr_params": parameters_dict,
-                        "ocr_bonus": bonus_dict,
-                        "ocr_score": score_dict,
-                        "schedule_inference_ms": (
-                            use_case_result
-                            .schedule_inference_ms
-                        ),
-                        "party_inference_ms": (
-                            use_case_result
-                            .party_inference_ms
-                        ),
-                        "score_inference_ms": (
-                            use_case_result
-                            .score_inference_ms
-                        ),
-                    },
-                )
-
                 self.log_command_end(
                     COMMAND_NAME
                 )
@@ -641,37 +643,6 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
             await self.send_image_consent_notification(
                 consent_result
             )
-
-            archive_images = (
-                self._build_archive_images(
-                    params=params,
-                    schedule_img_bytes=(
-                        schedule_img_bytes
-                    ),
-                    party_img_bytes=(
-                        party_img_bytes
-                    ),
-                    score_img_bytes=(
-                        score_img_bytes
-                    ),
-                )
-            )
-
-            if archive_images:
-                await self.maybe_archive_inputs(
-                    interaction=interaction,
-                    save_agree=(
-                        consent_result.current
-                    ),
-                    command=COMMAND_NAME,
-                    images=archive_images,
-                    meta={
-                        "status": "exception",
-                        "error": (
-                            f"{type(exc).__name__}: {exc}"
-                        ),
-                    },
-                )
 
             self.log_command_end(
                 COMMAND_NAME
@@ -754,49 +725,6 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
             time.perf_counter()
             - command_started_at
         ) * 1000.0
-
-        # ============================================
-        # 同意済み入力画像の保存
-        # ============================================
-        await self.maybe_archive_inputs(
-            interaction=interaction,
-            save_agree=(
-                consent_result.current
-            ),
-            command=COMMAND_NAME,
-            images=self._build_archive_images(
-                params=params,
-                schedule_img_bytes=(
-                    schedule_img_bytes
-                ),
-                party_img_bytes=(
-                    party_img_bytes
-                ),
-                score_img_bytes=(
-                    score_img_bytes
-                ),
-            ),
-            meta={
-                "status": "success",
-                "mode": params.mode,
-                "audition": params.audition,
-                "character": params.character,
-                "runtime_ms": command_total_ms,
-                "calculation_ms": calculation_ms,
-                "ocr_params": parameters_dict,
-                "ocr_bonus": bonus_dict,
-                "ocr_score": score_dict,
-                "schedule_inference_ms": (
-                    use_case_result.schedule_inference_ms
-                ),
-                "party_inference_ms": (
-                    use_case_result.party_inference_ms
-                ),
-                "score_inference_ms": (
-                    use_case_result.score_inference_ms
-                ),
-            },
-        )
 
         logger.debug(
             "calculate_score finished in %.3f ms",

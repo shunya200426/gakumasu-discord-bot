@@ -689,11 +689,7 @@ class BaseCommand(ABC):
                     **kwargs,
                 )
 
-        setattr(
-            cls,
-            "execute",
-            _wrapped,
-        )
+        cls.execute = _wrapped
 
     @abstractmethod
     async def execute(

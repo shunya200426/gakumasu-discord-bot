@@ -5,8 +5,8 @@ import os
 import time
 import traceback
 import zoneinfo
+from collections.abc import Hashable
 from datetime import datetime
-from typing import Hashable
 
 # Third-party
 import discord
