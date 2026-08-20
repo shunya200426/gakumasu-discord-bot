@@ -1,6 +1,7 @@
 # commands/nia_commands/required_score_from_img/command.py
 from __future__ import annotations
 
+import asyncio
 import time
 from typing import cast
 
@@ -37,7 +38,7 @@ _LABEL2KEY = {
 
 # --- Modal 定義 ---
 class ParamEditModal(ui.Modal):
-    def __init__(self, cmd: "NiaRequiredScoreFromImgCommand", selected_params: list[str], current: dict):
+    def __init__(self, cmd: NiaRequiredScoreFromImgCommand, selected_params: list[str], current: dict):
         super().__init__(title="パラメータを編集")
         self.cmd = cmd
         self.current = current
@@ -114,7 +115,7 @@ class ParamSelect(ui.Select):
     """
     パラメータの編集セレクト
     """
-    def __init__(self, cmd: "NiaRequiredScoreFromImgCommand"):
+    def __init__(self, cmd: NiaRequiredScoreFromImgCommand):
         # 強化月間フラグ
         is_boost = bool(getattr(cmd, "_static", {}).get("is_boost_active", False))
 
@@ -156,7 +157,7 @@ class AuditionSelect(ui.Select):
     """
     比較するオーディションのセレクト
     """
-    def __init__(self, cmd: "NiaRequiredScoreFromImgCommand"):
+    def __init__(self, cmd: NiaRequiredScoreFromImgCommand):
         # 現在のオーディションを取得
         # audition = getattr(cmd, "_static", {}).get("audition")
 
@@ -240,37 +241,73 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
             )
             return
 
-        # 入力画像の確認
-        if params.schedule_img.content_type and not params.schedule_img.content_type.startswith("image/"):
-            logger.warning("input img error")
-            await interaction.edit_original_response(
-                content="画像ファイルを添付してください"
-            )
-            await self.send_image_consent_notification(
-                consent_result
-            )
-            return
-        
-        if params.party_img.content_type and not params.party_img.content_type.startswith("image/"):
-            logger.warning("input img error")
-            await interaction.edit_original_response(
-                content="画像ファイルを添付してください"
-            )
-            await self.send_image_consent_notification(
-                consent_result
-            )
-            return
-
         schedule_img_bytes: bytes | None = None
         party_img_bytes: bytes | None = None
+        saved_input_paths: dict[str, str] = {}
 
         try:
             # 画像の読み込み
             t1 = time.perf_counter()
-            schedule_img_bytes = await params.schedule_img.read()
-            party_img_bytes = await params.party_img.read()
+            schedule_img_bytes, party_img_bytes = (
+                await asyncio.gather(
+                    self.read_image_attachment(
+                        params.schedule_img,
+                        label="スケジュール画面",
+                    ),
+                    self.read_image_attachment(
+                        params.party_img,
+                        label="編成画面",
+                    ),
+                )
+            )
+
+            if (
+                schedule_img_bytes is None
+                or party_img_bytes is None
+            ):
+                raise RuntimeError(
+                    "必須画像の読み込み結果がありません。"
+                )
+
             dt = (time.perf_counter() - t1) * 1000
             logger.debug("loading img time %.1f ms", dt)
+
+            if consent_result.current:
+                try:
+                    image_storage_service = (
+                        self.get_image_storage_service(
+                            interaction
+                        )
+                    )
+
+                    saved_input_paths = (
+                        await image_storage_service.save_input_images(
+                            guild_id=interaction.guild_id,
+                            user_id=interaction.user.id,
+                            command_name=COMMAND_NAME,
+                            request_id=self.request_id,
+                            images=self._build_archive_images(
+                                params=params,
+                                schedule_img_bytes=(
+                                    schedule_img_bytes
+                                ),
+                                party_img_bytes=(
+                                    party_img_bytes
+                                ),
+                            ),
+                            metadata={
+                                "mode": params.mode,
+                                "audition": params.audition,
+                                "character": params.character,
+                            },
+                        )
+                    )
+
+                except Exception:
+                    logger.warning(
+                        "Failed to save input images",
+                        exc_info=True,
+                    )
 
             schedule_image = self._decode_image(
                 schedule_img_bytes,
@@ -319,7 +356,7 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
                     user_id=interaction.user.id,
                     command_name=COMMAND_NAME,
                     image_role="schedule",
-                    image_path=None,
+                    image_path=saved_input_paths.get("schedule"),
                     export_path=None,
                     inference_result=(
                         use_case_result.schedule_inference
@@ -334,7 +371,7 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
                     user_id=interaction.user.id,
                     command_name=COMMAND_NAME,
                     image_role="party",
-                    image_path=None,
+                    image_path=saved_input_paths.get("party"),
                     export_path=None,
                     inference_result=(
                         use_case_result.party_inference
@@ -376,28 +413,6 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
                     consent_result
                 )
 
-                # ▼ 失敗時も保存する（同意時）
-                await self.maybe_archive_inputs(
-                    interaction=interaction,
-                    save_agree=(
-                        consent_result.current
-                    ),
-                    command=COMMAND_NAME,
-                    images=self._build_archive_images(
-                        params=params,
-                        schedule_img_bytes=(
-                            schedule_img_bytes
-                        ),
-                        party_img_bytes=(
-                            party_img_bytes
-                        ),
-                    ),
-                    meta={
-                        "error": "param_or_bonus_read_failed",
-                        "ocr_params": parameters_dict,
-                        "ocr_bonus": bonus_dict,
-                    },
-                )
                 self.log_command_end(COMMAND_NAME)
                 return
             
@@ -417,34 +432,6 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
                 consent_result
             )
 
-            # ▼ 失敗時も保存する（同意時）: 取得済みバイトがなければ再読込を試みる
-            try:
-                images = {}
-                if params.schedule_img:
-                    images["schedule"] = (
-                        params.schedule_img.filename or "schedule.png",
-                        locals().get("schedule_img_bytes") or await params.schedule_img.read()
-                    )
-                if params.party_img:
-                    images["party"] = (
-                        params.party_img.filename or "party.png",
-                        locals().get("party_img_bytes") or await params.party_img.read()
-                    )
-            except Exception:
-                images = {}
-
-            await self.maybe_archive_inputs(
-                interaction=interaction,
-                save_agree=(
-                    consent_result.current
-                ),
-                command=COMMAND_NAME,
-                images=images,
-                meta={
-                    "error": "exception",
-                    "exception": f"{type(e).__name__}: {e}",
-                },
-            )
             self.log_command_end(COMMAND_NAME)
             return
 
@@ -494,32 +481,6 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
         )
         self.message = await interaction.original_response()
 
-        # 送信後：同意時のみ保存（共通化）
-        await self.maybe_archive_inputs(
-            interaction=interaction,
-            save_agree=(
-                consent_result.current
-            ),
-            command="nia_required_score_from_img",
-            images=self._build_archive_images(
-                params=params,
-                schedule_img_bytes=(
-                    schedule_img_bytes
-                ),
-                party_img_bytes=(
-                    party_img_bytes
-                ),
-            ),
-            meta={
-                "mode": params.mode,
-                "audition": params.audition,
-                "character": params.character,
-                "runtime_ms": (time.perf_counter() - t0) * 1000.0,
-                "ocr_params": parameters_dict,
-                "ocr_bonus":  bonus_dict,
-            },
-        )
-                
         dt = use_case_result.calculation_ms
         logger.debug("required score finished in %.2f ms", dt)
 
