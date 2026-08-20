@@ -425,9 +425,6 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
                 image_load_ms,
             )
 
-            if True:
-                raise OSError("test storage failure")
-
             # ========================================
             # 同意済み入力画像の保存
             # ========================================
