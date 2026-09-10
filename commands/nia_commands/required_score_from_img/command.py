@@ -347,6 +347,8 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
 
                 export_results = await asyncio.gather(
                     inference_export_service.save(
+                        guild_id=interaction.guild_id,
+                        user_id=interaction.user.id,
                         request_id=self.request_id,
                         image_role="schedule",
                         inference_result=(
@@ -354,6 +356,8 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
                         ),
                     ),
                     inference_export_service.save(
+                        guild_id=interaction.guild_id,
+                        user_id=interaction.user.id,
                         request_id=self.request_id,
                         image_role="party",
                         inference_result=(

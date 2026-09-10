@@ -72,6 +72,8 @@ async def test_save_inference_result_json(
     )
 
     export_path = await service.save(
+        guild_id=123456789,
+        user_id=987654321,
         request_id="request-001",
         image_role="schedule",
         inference_result=_build_inference_result(),
@@ -102,6 +104,8 @@ async def test_saved_json_contains_inference_result(
     )
 
     export_path = await service.save(
+        guild_id=123456789,
+        user_id=987654321,
         request_id="request-002",
         image_role="schedule",
         inference_result=_build_inference_result(),
@@ -155,6 +159,8 @@ async def test_saved_json_contains_detections(
     )
 
     export_path = await service.save(
+        guild_id=123456789,
+        user_id=987654321,
         request_id="request-003",
         image_role="party",
         inference_result=_build_inference_result(),
@@ -200,12 +206,16 @@ async def test_different_image_roles_use_different_files(
     inference_result = _build_inference_result()
 
     schedule_path = await service.save(
+        guild_id=123456789,
+        user_id=987654321,
         request_id="request-004",
         image_role="schedule",
         inference_result=inference_result,
     )
 
     party_path = await service.save(
+        guild_id=123456789,
+        user_id=987654321,
         request_id="request-004",
         image_role="party",
         inference_result=inference_result,
@@ -233,6 +243,8 @@ async def test_empty_request_id_raises_value_error(
         match="request_id must not be empty",
     ):
         await service.save(
+            guild_id=123456789,
+            user_id=987654321,
             request_id="",
             image_role="schedule",
             inference_result=_build_inference_result(),

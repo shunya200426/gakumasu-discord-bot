@@ -45,6 +45,8 @@ class InferenceExportService:
     async def save(
         self,
         *,
+        guild_id: int,
+        user_id: int,
         request_id: str,
         image_role: ImageRole,
         inference_result: InferenceResult,
@@ -71,6 +73,8 @@ class InferenceExportService:
         """
         return await asyncio.to_thread(
             self._save_sync,
+            guild_id=guild_id,
+            user_id=user_id,
             request_id=request_id,
             image_role=image_role,
             inference_result=inference_result,
@@ -79,6 +83,8 @@ class InferenceExportService:
     def _save_sync(
         self,
         *,
+        guild_id: int,
+        user_id: int,
         request_id: str,
         image_role: ImageRole,
         inference_result: InferenceResult,
@@ -99,6 +105,8 @@ class InferenceExportService:
         target_directory = (
             self._export_directory
             / self._today_string()
+            / str(guild_id)
+            / str(user_id)
         )
 
         target_directory.mkdir(

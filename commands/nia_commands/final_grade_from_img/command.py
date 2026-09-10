@@ -515,6 +515,8 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
 
                 export_results = await asyncio.gather(
                     inference_export_service.save(
+                        guild_id=interaction.guild_id,
+                        user_id=interaction.user.id,
                         request_id=self.request_id,
                         image_role="schedule",
                         inference_result=(
@@ -522,6 +524,8 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
                         ),
                     ),
                     inference_export_service.save(
+                        guild_id=interaction.guild_id,
+                        user_id=interaction.user.id,
                         request_id=self.request_id,
                         image_role="party",
                         inference_result=(
@@ -529,6 +533,8 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
                         ),
                     ),
                     inference_export_service.save(
+                        guild_id=interaction.guild_id,
+                        user_id=interaction.user.id,
                         request_id=self.request_id,
                         image_role="score",
                         inference_result=(
