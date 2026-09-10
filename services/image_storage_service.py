@@ -174,8 +174,7 @@ class ImageStorageService:
 
         logger.info(
             "Input images saved: "
-            "request_id=%s directory=%s images=%d",
-            request_id,
+            "directory=%s images=%d",
             target_directory,
             len(saved_paths),
         )

@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 
 # Local application
 from commands.groups import gkms
-from config.paths import YOLO_MODEL_PATH
+from config.paths import LOG_DIR, YOLO_MODEL_PATH
 from db.database import DatabaseManager
 from inference.yolo_detector import YoloDetector
 from ocr.tesseract_engine import TesseractEngine
@@ -568,14 +568,14 @@ async def _send_access_denied_message(
 # 追加: ログ初期化（本番も開発もこれでOK）
 setup_logging(
     name="gakumasu_bot",
-    log_dir="logs",
+    log_dir=str(LOG_DIR),
     console_level=discord.utils.MISSING and None or  # 何もしないダミー：そのまま残してOK
     __import__("logging").INFO,
     file_level=__import__("logging").DEBUG,
     split_error_file=True,
     use_json=False,     # JSONログにしたいときは True
     rotation="time",    # Raspberry Piで容量基準にしたいなら "size"
-    backup_days=30,
+    backup_days=0,
 )
 log = get_logger()
 

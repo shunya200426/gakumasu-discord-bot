@@ -161,8 +161,7 @@ class InferenceExportService:
 
         logger.info(
             "Inference result exported: "
-            "request_id=%s role=%s path=%s",
-            request_id,
+            "role=%s path=%s",
             image_role,
             export_path,
         )
