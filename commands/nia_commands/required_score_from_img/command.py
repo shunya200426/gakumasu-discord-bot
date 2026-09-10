@@ -334,6 +334,46 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
             )
 
             # ========================================
+            # 推論結果JSONの保存
+            # ========================================
+            saved_export_paths: dict[str, str] = {}
+
+            try:
+                inference_export_service = (
+                    self.get_inference_export_service(
+                        interaction
+                    )
+                )
+
+                export_results = await asyncio.gather(
+                    inference_export_service.save(
+                        request_id=self.request_id,
+                        image_role="schedule",
+                        inference_result=(
+                            use_case_result.schedule_inference
+                        ),
+                    ),
+                    inference_export_service.save(
+                        request_id=self.request_id,
+                        image_role="party",
+                        inference_result=(
+                            use_case_result.party_inference
+                        ),
+                    ),
+                )
+
+                saved_export_paths = {
+                    "schedule": export_results[0],
+                    "party": export_results[1],
+                }
+
+            except Exception:
+                logger.warning(
+                    "Failed to export inference results",
+                    exc_info=True,
+                )
+
+            # ========================================
             # 推論ログ・検出結果のDB保存
             # ========================================
             inference_status = (
@@ -357,7 +397,7 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
                     command_name=COMMAND_NAME,
                     image_role="schedule",
                     image_path=saved_input_paths.get("schedule"),
-                    export_path=None,
+                    export_path=saved_export_paths.get("schedule"),
                     inference_result=(
                         use_case_result.schedule_inference
                     ),
@@ -372,7 +412,7 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
                     command_name=COMMAND_NAME,
                     image_role="party",
                     image_path=saved_input_paths.get("party"),
-                    export_path=None,
+                    export_path=saved_export_paths.get("party"),
                     inference_result=(
                         use_case_result.party_inference
                     ),

@@ -19,6 +19,7 @@ from services.image_consent_service import (
     ImageConsentService,
 )
 from services.image_storage_service import ImageStorageService
+from services.inference_export_service import InferenceExportService
 from services.inference_log_recorder import InferenceLogRecorder
 from utils.context import build_ctx_from_interaction
 from utils.logger import get_logger, use_log_context
@@ -281,6 +282,30 @@ class BaseCommand(ABC):
 
         return service
 
+    def get_inference_export_service(
+        self,
+        interaction: discord.Interaction,
+    ) -> InferenceExportService:
+        """
+        Botが保持しているInferenceExportServiceを取得する。
+        """
+        service = cast(
+            InferenceExportService | None,
+            getattr(
+                interaction.client,
+                "inference_export_service",
+                None,
+            ),
+        )
+
+        if service is None:
+            raise RuntimeError(
+                "InferenceExportServiceが"
+                "初期化されていません。"
+            )
+
+        return service
+
     def resolve_image_consent(
         self,
         *,
@@ -317,14 +342,12 @@ class BaseCommand(ABC):
         if result.current:
             message = (
                 "画像保存へのご協力ありがとうございます！\n"
-                "今後は設定を変更するまで、入力画像および"
-                "推論・切り抜き画像を保存します。"
+                "今後は設定を変更するまで、入力画像を保存します。"
             )
         else:
             message = (
                 "画像保存を無効にしました。\n"
-                "今回以降の入力画像および推論・切り抜き画像は"
-                "保存されません。"
+                "今回以降の入力画像は保存されません。"
             )
 
         await self._safe_send(

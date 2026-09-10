@@ -22,6 +22,7 @@ from inference.yolo_detector import YoloDetector
 from ocr.tesseract_engine import TesseractEngine
 from services.image_consent_service import ImageConsentService
 from services.image_storage_service import ImageStorageService
+from services.inference_export_service import InferenceExportService
 from services.inference_log_recorder import InferenceLogRecorder
 from services.inference_service import InferenceService
 from services.interaction_access_service import (
@@ -101,6 +102,7 @@ class GakumasuBot(commands.Bot):
         self.interaction_access_service: InteractionAccessService | None = None
         self.image_consent_service: ImageConsentService | None = None
         self.image_storage_service: ImageStorageService | None = None
+        self.inference_export_service: InferenceExportService | None = None
 
     async def setup_hook(self) -> None:
         try:
@@ -184,6 +186,11 @@ class GakumasuBot(commands.Bot):
             log.info("Initializing image storage service...")
             self.image_storage_service = ImageStorageService()
             log.info("Image storage service initialized.")
+
+            # InferenceExportServiceの初期化
+            log.info("Initializing inference export service...")
+            self.inference_export_service = InferenceExportService()
+            log.info("Inference export service initialized.")
 
             # ====== スラッシュコマンド登録 ======
             for module_name in MODULES:
