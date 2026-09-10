@@ -10,7 +10,7 @@ import os
 import shutil
 import threading
 import zoneinfo
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -248,10 +248,9 @@ class ImageStorageService:
                 continue
 
             try:
-                directory_date = datetime.strptime(
+                directory_date = date.fromisoformat(
                     directory.name,
-                    "%Y-%m-%d",
-                ).date()
+                )
 
             except ValueError:
                 continue

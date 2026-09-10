@@ -6,12 +6,14 @@ from __future__ import annotations
 
 import asyncio
 import json
+import shutil
 import zoneinfo
 from dataclasses import asdict
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Literal
 
+from config.bot_settings import IMAGE_RETENTION_DAYS
 from config.paths import INFERENCE_EXPORT_DIR
 from inference.result import InferenceResult
 from utils.logger import get_logger
@@ -39,8 +41,15 @@ class InferenceExportService:
         self,
         *,
         export_directory: Path = INFERENCE_EXPORT_DIR,
+        retention_days: int = IMAGE_RETENTION_DAYS,
     ) -> None:
+        if retention_days <= 0:
+            raise ValueError(
+                "retention_days must be greater than 0"
+            )
+
         self._export_directory = export_directory
+        self._retention_days = retention_days
 
     async def save(
         self,
@@ -55,6 +64,10 @@ class InferenceExportService:
         推論結果を別スレッドでJSONファイルへ保存する。
 
         Args:
+            guild_id:
+                DiscordサーバーID。
+            user_id:
+                DiscordユーザーID。
             request_id:
                 コマンド実行単位の相関ID。
             image_role:
@@ -129,6 +142,7 @@ class InferenceExportService:
             "exported_at": datetime.now(
                 JST
             ).isoformat(timespec="seconds"),
+            "retention_days": self._retention_days,
             "result": asdict(inference_result),
         }
 
@@ -143,6 +157,8 @@ class InferenceExportService:
             encoding="utf-8",
         )
 
+        self._purge_expired_directories()
+
         logger.info(
             "Inference result exported: "
             "request_id=%s role=%s path=%s",
@@ -152,6 +168,39 @@ class InferenceExportService:
         )
 
         return str(export_path)
+
+    def _purge_expired_directories(self) -> None:
+        """
+        保存期間を超過した日付ディレクトリを削除する。
+        """
+        if not self._export_directory.exists():
+            return
+
+        cutoff = datetime.now(JST).date() - timedelta(
+            days=self._retention_days
+        )
+
+        for directory in self._export_directory.iterdir():
+            if not directory.is_dir():
+                continue
+
+            try:
+                directory_date = date.fromisoformat(
+                    directory.name
+                )
+
+            except ValueError:
+                continue
+
+            if directory_date >= cutoff:
+                continue
+
+            shutil.rmtree(directory)
+
+            logger.info(
+                "Expired inference export directory removed: %s",
+                directory,
+            )
 
     @staticmethod
     def _today_string() -> str:

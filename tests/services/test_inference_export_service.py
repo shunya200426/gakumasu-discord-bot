@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -92,6 +93,7 @@ async def test_save_inference_result_json(
 
     assert payload["request_id"] == "request-001"
     assert payload["image_role"] == "schedule"
+    assert payload["retention_days"] == 180
     assert "exported_at" in payload
 
 
@@ -249,3 +251,77 @@ async def test_empty_request_id_raises_value_error(
             image_role="schedule",
             inference_result=_build_inference_result(),
         )
+
+@pytest.mark.asyncio
+async def test_expired_directory_is_removed(
+    tmp_path: Path,
+) -> None:
+    retention_days = 180
+
+    expired_date = (
+        datetime.now().date()
+        - timedelta(days=retention_days + 1)
+    )
+
+    expired_directory = (
+        tmp_path
+        / expired_date.strftime("%Y-%m-%d")
+    )
+    expired_directory.mkdir()
+
+    expired_file = (
+        expired_directory / "old-result.json"
+    )
+    expired_file.write_text(
+        "{}",
+        encoding="utf-8",
+    )
+
+    service = InferenceExportService(
+        export_directory=tmp_path,
+        retention_days=retention_days,
+    )
+
+    await service.save(
+        guild_id=123456789,
+        user_id=987654321,
+        request_id="request-expired",
+        image_role="schedule",
+        inference_result=_build_inference_result(),
+    )
+
+    assert not expired_directory.exists()
+
+
+@pytest.mark.asyncio
+async def test_non_date_directory_is_not_removed(
+    tmp_path: Path,
+) -> None:
+    unrelated_directory = (
+        tmp_path / "manually-selected"
+    )
+    unrelated_directory.mkdir()
+
+    unrelated_file = (
+        unrelated_directory / "keep.json"
+    )
+    unrelated_file.write_text(
+        "{}",
+        encoding="utf-8",
+    )
+
+    service = InferenceExportService(
+        export_directory=tmp_path,
+        retention_days=180,
+    )
+
+    await service.save(
+        guild_id=123456789,
+        user_id=987654321,
+        request_id="request-non-date",
+        image_role="schedule",
+        inference_result=_build_inference_result(),
+    )
+
+    assert unrelated_directory.exists()
+    assert unrelated_file.exists()
