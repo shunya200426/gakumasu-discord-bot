@@ -4,11 +4,13 @@
 from discord import Interaction, app_commands
 
 from commands.groups import hajime
-from config.settings import CHARACTERS
+from config.character_settings import CHARACTERS
+from config.hajime_settings import HAJIME
 from models.hajime.required_score.params import HajimeRequiredScoreParams
 
 from .command import HajimeRequiredScoreCommand
 
+ST_MAX = HAJIME['legend']['st_max']
 
 @hajime.command(
     name="required_score",
@@ -27,8 +29,8 @@ from .command import HajimeRequiredScoreCommand
     目標評価ランク="目標評価ランクの設定",
     目標スコア="目標スコアの設定",
     キャラクター="キャラクターを選択",
-    # アイドル強化月間="アイドル強化月間を適用しますか？",
-    # ほしのきらめき="オーディション前のほしのきらめきの数"
+    アイドル強化月間="アイドル強化月間を適用しますか？",
+    ほしのきらめき="オーディション前のほしのきらめきの数"
 )
 
 @app_commands.choices(
@@ -40,9 +42,9 @@ from .command import HajimeRequiredScoreCommand
 
 @app_commands.choices(
     難易度=[
-        app_commands.Choice(name="レギュラー", value="regular"),
-        app_commands.Choice(name="プロ", value="pro"),
-        app_commands.Choice(name="マスター", value="master"),
+        # app_commands.Choice(name="レギュラー", value="regular"),
+        # app_commands.Choice(name="プロ", value="pro"),
+        # app_commands.Choice(name="マスター", value="master"),
         app_commands.Choice(name="レジェンド", value="legend")
     ]
 )
@@ -57,21 +59,21 @@ from .command import HajimeRequiredScoreCommand
 )
 
 
-async def nia_final_grade_command(
+async def hajime_required_score_command(
     interaction: Interaction,
     難易度: app_commands.Choice[str],
-    voパラメータ: app_commands.Range[int, 0, 2800],
-    daパラメータ: app_commands.Range[int, 0, 2800],
-    viパラメータ: app_commands.Range[int, 0, 2800],
-    中間試験スコア: app_commands.Range[int, 0],
+    voパラメータ: app_commands.Range[int, 0, ST_MAX],
+    daパラメータ: app_commands.Range[int, 0, ST_MAX],
+    viパラメータ: app_commands.Range[int, 0, ST_MAX],
+    中間試験スコア: app_commands.Range[int, 0, 20000] = 50000,
     vo試験終了時アビ: app_commands.Range[int, 0] = 0,
     da試験終了時アビ: app_commands.Range[int, 0] = 0,
     vi試験終了時アビ: app_commands.Range[int, 0] = 0,
     目標評価ランク: str | None = None,
     目標スコア: app_commands.Range[int, 0] | None = None,
     キャラクター: str | None = None,
-    # アイドル強化月間: bool = False,
-    # ほしのきらめき: int = 0
+    アイドル強化月間: bool = False,
+    ほしのきらめき: int = 0
 ):
     # Params組み立て
     params = HajimeRequiredScoreParams(
@@ -86,10 +88,8 @@ async def nia_final_grade_command(
         target_grade    = 目標評価ランク,
         target_score    = 目標スコア,
         character       = キャラクター,
-        # is_boost_active = アイドル強化月間,
-        # kirameki        = ほしのきらめき
-        is_boost_active = False,
-        kirameki        = 0
+        is_boost_active = アイドル強化月間,
+        kirameki        = ほしのきらめき,
     )
 
     # コマンド処理

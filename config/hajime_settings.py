@@ -24,6 +24,8 @@ HAJIME = {
                 "den": 100,
             },
         },
+        "boost": None,
+        "required_score_search": None,
     },
 
 
@@ -44,6 +46,8 @@ HAJIME = {
                 "den": 100,
             },
         },
+        "boost": None,
+        "required_score_search": None,
     },
 
 
@@ -65,6 +69,8 @@ HAJIME = {
                 "den": 100,
             },
         },
+        "boost": None,
+        "required_score_search": None,
     },
 
 
@@ -90,6 +96,19 @@ HAJIME = {
                 "coefficients": [15, 10, 8, 1, 1],
                 "den": 1000,
             },
+        },
+        "boost": {
+            "boost_coeff": 0.72,
+            "kirameki_coeff": 11.016,
+            "kirameki": {
+                "pre_exam_max": 420,
+                "exam_gain_max": 190,
+            },
+        },
+        "required_score_search": {
+            "search_min_score": 300000,
+            "search_max_score": 2000000,
+            "step": 100,
         },
     },
 }

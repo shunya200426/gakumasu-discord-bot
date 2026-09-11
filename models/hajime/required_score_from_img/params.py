@@ -17,14 +17,17 @@ class HajimeRequiredScoreFromImgParams:
 
     # 入力画像
     schedule_img: discord.Attachment
-    score_img: discord.Attachment
-    
+    party_img: discord.Attachment
+
+    # 中間試験のスコア
+    mid_exam_score: int
+    mid_exam_score_img: discord.Attachment = None
+
     # 使用キャラクター
     character: str = None
 
     # アイドル強化月間
     is_boost_active: bool = False
-    party_img: discord.Attachment = None    # 月間時に使うかも
 
     # 目標評価/スコア
     target_grade: str | None = None   
