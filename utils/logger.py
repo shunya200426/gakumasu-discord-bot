@@ -8,7 +8,7 @@ import os
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 # =========
@@ -191,7 +191,7 @@ class ContextLoggerAdapter(logging.LoggerAdapter):
     """
     def process(self, msg, kwargs):
         # JSONFormatter 側は record.context を拾う
-        extra: Dict[str, Any] = kwargs.get("extra", {})
+        extra: dict[str, Any] = kwargs.get("extra", {})
         ctx = {**self.extra, **extra.get("context", {})}
         extra["context"] = ctx
         kwargs["extra"] = extra
@@ -211,7 +211,7 @@ class ContextLoggerAdapter(logging.LoggerAdapter):
 
 def get_logger(
     name: str = "gakumasu_bot",
-    context: Optional[Dict[str, Any]] = None,
+    context: dict[str, Any] | None = None,
 ) -> logging.Logger:
     """
     既存ロガーに文脈を足したい場合は ContextLoggerAdapter を返す。

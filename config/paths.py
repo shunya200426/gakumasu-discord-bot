@@ -21,8 +21,6 @@ LOG_DIR = HOME_DIR / "logs" / "discord-bot"
 
 BACKUP_DIR = HOME_DIR / "backups" / "discord-bot"
 
-LOG_DIR = HOME_DIR / "logs" / "discord-bot"
-
 # =========================
 # AI Models
 # =========================
