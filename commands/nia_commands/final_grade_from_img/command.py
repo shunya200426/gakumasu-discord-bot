@@ -133,7 +133,7 @@ class ParamEditModal(ui.Modal):
 
                     merged[key] = value
 
-                except Exception as exc:
+                except (ValueError, TypeError) as exc:
                     await interaction.followup.send(
                         embed=Embed(
                             title="入力エラー",
@@ -159,7 +159,7 @@ class ParamEditModal(ui.Modal):
 
                     merged[key] = value
 
-                except Exception as exc:
+                except (ValueError, TypeError) as exc:
                     await interaction.followup.send(
                         embed=Embed(
                             title="入力エラー",

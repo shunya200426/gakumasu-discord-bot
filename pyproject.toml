@@ -1,0 +1,9 @@
+[tool.ruff.lint.per-file-ignores]
+# 旧OCR実装。Hajime移行完了後に ocr/core.py ごと削除予定
+"ocr/core.py" = [
+    "E722",
+    "F841",
+    "RUF059",
+    "S110",
+    "S112",
+]

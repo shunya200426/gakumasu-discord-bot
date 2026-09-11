@@ -350,7 +350,7 @@ class HajimeRequiredScoreFromImgCommand(HajimeRequiredScoreCommand):
                 return
             
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - コマンド全体の最終エラーハンドラ
             logger.warning("%s: %s", type(e).__name__, e)
             logger.info("ERROR Embed構築開始")
             err = discord.Embed(
@@ -380,7 +380,7 @@ class HajimeRequiredScoreFromImgCommand(HajimeRequiredScoreCommand):
                         params.score_img.filename or "score.png",
                         locals().get("score_img_bytes") or await params.score_img.read()
                     )
-            except Exception:
+            except Exception:   # noqa: BLE001 - エラー保存用画像の再取得失敗は無視
                 images = {}
 
             await self.maybe_archive_inputs(

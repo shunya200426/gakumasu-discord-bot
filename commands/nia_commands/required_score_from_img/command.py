@@ -76,7 +76,7 @@ class ParamEditModal(ui.Modal):
                         merged[k] = int(str(merged[k]).strip() or 0)
                         if merged[k] < 0:
                             raise ValueError(f"{k} は0以上にしてください")
-                    except Exception as e:
+                    except (ValueError, TypeError) as e:
                         await interaction.response.send_message(
                             embed=Embed(title="入力エラー", description=f"{k}: {e}"),
                             ephemeral=True
@@ -89,7 +89,7 @@ class ParamEditModal(ui.Modal):
                         merged[k] = float(str(merged[k]).strip() or 0.0)
                         if merged[k] < 0:
                             raise ValueError(f"{k} は0.0以上にしてください")
-                    except Exception as e:
+                    except (ValueError, TypeError) as e:
                         await interaction.response.send_message(
                             embed=Embed(title="入力エラー", description=f"{k}: {e}"),
                             ephemeral=True
@@ -461,7 +461,7 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
                 return
             
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - コマンド全体の最終エラーハンドラ
             logger.warning("%s: %s", type(e).__name__, e)
             logger.info("ERROR Embed構築開始")
             err = discord.Embed(
