@@ -21,10 +21,10 @@ class HajimeRequiredScoreFromImgParams:
 
     # 中間試験のスコア
     mid_exam_score: int
-    mid_exam_score_img: discord.Attachment = None
+    mid_exam_score_img: discord.Attachment | None = None
 
     # 使用キャラクター
-    character: str = None
+    character: str | None = None
 
     # アイドル強化月間
     is_boost_active: bool = False
@@ -34,4 +34,4 @@ class HajimeRequiredScoreFromImgParams:
     target_score: int | None = None   
 
     # 画像ログの同意
-    save_agree: bool = False
+    save_agree: bool | None = None

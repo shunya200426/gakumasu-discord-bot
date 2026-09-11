@@ -30,7 +30,10 @@ from .command import HajimeRequiredScoreFromImgCommand
     目標評価ランク="目標評価ランクの設定",
     目標スコア="目標スコアの設定",
     アイドル強化月間="アイドル強化月間を適用しますか？",
-    画像ログ="ご協力いただける場合はTrueを選んでください（入力画像を保存し、30日後に自動削除されます）"
+    画像ログ=(
+        "精度向上用の画像保存設定"
+        "（未指定の場合は現在の設定を維持します）"
+    ),
 )
 
 @app_commands.choices(
@@ -73,7 +76,7 @@ async def hajime_required_score_from_img_command(
     目標スコア: app_commands.Range[int, 0] | None = None,
     キャラクター: str | None = None,
     アイドル強化月間: bool = False,
-    画像ログ: bool = False
+    画像ログ: bool | None = None
 ):
     # Params組み立て
     params = HajimeRequiredScoreFromImgParams(

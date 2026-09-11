@@ -190,28 +190,3 @@ class HajimeRequiredScoreCommand(BaseCommand):
             
             await interaction.followup.send(view=layout)
             self.log_recompute_end(COMMAND_NAME)
-
-    # required_score_from_img が次STEPでInferenceUseCaseへ移行するまでの互換境界。
-    # 計算処理は持たず、Discord非依存のCalculatorへ転送する。
-    def _compute_required_result_dict(
-        self,
-        scenario: HajimeScenario,
-        params: HajimeRequiredScoreParams,
-    ) -> dict[str, int | str | None]:
-        return RequiredScoreCalculator().compute_required_result_dict(scenario, params)
-
-    def _build_pairs(
-        self,
-        result_dict: dict[str, int | str | None],
-        target_grade: str | None,
-        target_score: int | None,
-    ) -> tuple[list[tuple[str, str]], str | None, int | None]:
-        return RequiredScoreCalculator().build_pairs(
-            result_dict,
-            target_grade,
-            target_score,
-        )
-
-    @staticmethod
-    def _total_or_none(value: int | str | None) -> int | str | None:
-        return value
