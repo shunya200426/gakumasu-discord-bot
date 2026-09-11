@@ -4,6 +4,9 @@ import time
 import discord
 from discord import Embed, ui
 
+from commands.hajime_commands.required_score.calculator import (
+    BOOST_MODE_NOT_SUPPORTED_MESSAGE,
+)
 from commands.hajime_commands.required_score.command import HajimeRequiredScoreCommand
 from commands.hajime_commands.required_score.container_builder import (
     build_required_score_container,
@@ -212,6 +215,18 @@ class HajimeRequiredScoreFromImgCommand(HajimeRequiredScoreCommand):
     async def execute(self, params: HajimeRequiredScoreFromImgParams):
         self.log_command_start(COMMAND_NAME)
         t0 = time.perf_counter()
+
+        if params.is_boost_active:
+            logger.info(
+                "required score calculation stopped: %s",
+                BOOST_MODE_NOT_SUPPORTED_MESSAGE,
+            )
+            await self.interaction.response.send_message(
+                BOOST_MODE_NOT_SUPPORTED_MESSAGE,
+                ephemeral=True,
+            )
+            self.log_command_end(COMMAND_NAME)
+            return
         
         self._static = {
             "mode": params.mode,

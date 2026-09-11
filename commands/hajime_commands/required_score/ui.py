@@ -65,7 +65,7 @@ async def hajime_required_score_command(
     voパラメータ: app_commands.Range[int, 0, ST_MAX],
     daパラメータ: app_commands.Range[int, 0, ST_MAX],
     viパラメータ: app_commands.Range[int, 0, ST_MAX],
-    中間試験スコア: app_commands.Range[int, 0, 20000] = 50000,
+    中間試験スコア: app_commands.Range[int, 0, 200000] = 50000,
     vo試験終了時アビ: app_commands.Range[int, 0] = 0,
     da試験終了時アビ: app_commands.Range[int, 0] = 0,
     vi試験終了時アビ: app_commands.Range[int, 0] = 0,

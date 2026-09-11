@@ -4,7 +4,7 @@ import discord
 from discord import Interaction, app_commands
 
 from commands.groups import hajime
-from config.settings import CHARACTERS
+from config.character_settings import CHARACTERS
 from models.hajime.required_score_from_img.params import (
     HajimeRequiredScoreFromImgParams,
 )

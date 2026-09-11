@@ -65,8 +65,6 @@ def build_required_score_container(
         mid_exam_score      = result.mid_exam_score,
         required_block      = required_block
     )
-    print("メッセージ構築CLEAR!")
-    
     # 埋め込みを作成して返す
     container = ui.Container(accent_color=container_color)
     container.add_item(ui.TextDisplay(content=content))
