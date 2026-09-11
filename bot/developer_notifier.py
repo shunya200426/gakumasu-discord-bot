@@ -229,10 +229,8 @@ async def notify_dev_about_block(
         return
 
     except Exception:
-        log.error(
-            "Failed to DM developer "
-            "for blocked use.",
-            exc_info=True,
+        log.exception(
+            "Failed to DM developer for blocked use."
         )
 
     # ====== Alert Channelへフォールバック ======
@@ -254,9 +252,6 @@ async def notify_dev_about_block(
                 )
 
         except Exception:
-            log.error(
-                "Failed to post to "
-                "alert channel "
-                "as fallback.",
-                exc_info=True,
+            log.exception(
+                "Failed to post to alert channel as fallback."
             )

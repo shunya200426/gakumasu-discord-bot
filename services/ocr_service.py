@@ -31,7 +31,6 @@ from ocr.preprocess import (
 from ocr.tesseract_engine import TesseractEngine
 from utils.logger import get_logger
 
-
 logger = get_logger()
 
 
@@ -515,7 +514,7 @@ class OcrService:
         *,
         class_name: str,
         raw_text: str,
-        parsed_value: int | float | None,
+        parsed_value: float | None,
     ) -> None:
         """
         OCRの生文字列と変換結果をデバッグログへ記録する。

@@ -1,10 +1,13 @@
 # required_score/ui.py
-from typing import Optional
+
 from discord import Interaction, app_commands
-from models.nia.required_score.params import NiaRequiredScoreParams
-from config.settings import NIA, CHARACTERS
-from .command import NiaRequiredScoreCommand
+
 from commands.groups import nia
+from config.settings import CHARACTERS, NIA
+from models.nia.required_score.params import NiaRequiredScoreParams
+
+from .command import NiaRequiredScoreCommand
+
 
 @nia.command(
     name="required_score",
@@ -72,8 +75,8 @@ async def nia_required_score_command(
     daパラメータボーナス: float,
     viパラメータボーナス: float,
     ファン数: app_commands.Range[int, 20000],
-    目標評価ランク: Optional[str] = None,
-    目標スコア: Optional[app_commands.Range[int, 0]] = None,
+    目標評価ランク: str | None = None,
+    目標スコア: app_commands.Range[int, 0] | None = None,
     チャレンジアイテム: app_commands.Range[int, 0] = NIA["master"]["challenge_bonus_max"],
     アイドル強化月間: bool = False,
     ほしのきらめき: app_commands.Range[int, 0] = 0

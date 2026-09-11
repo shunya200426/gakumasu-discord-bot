@@ -1,7 +1,7 @@
 # required_score/params.py
 
 from dataclasses import dataclass
-from typing import Optional, Literal
+
 
 @dataclass
 class NiaRequiredScoreParams:
@@ -35,5 +35,5 @@ class NiaRequiredScoreParams:
     kirameki: int
 
     # 目標評価/スコア
-    target_grade: Optional[str] = None   
-    target_score: Optional[int] = None   
+    target_grade: str | None = None   
+    target_score: int | None = None   

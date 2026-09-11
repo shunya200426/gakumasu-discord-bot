@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
 from types import TracebackType
-from typing import Optional, Type
+
 
 class SQLiteConnection:
     """
@@ -13,7 +13,7 @@ class SQLiteConnection:
 
     def __init__(self, db_path: Path) -> None:
         self.db_path = db_path
-        self.connection: Optional[sqlite3.Connection] = None
+        self.connection: sqlite3.Connection | None = None
 
     def connect(self) -> sqlite3.Connection:
         """
@@ -61,9 +61,9 @@ class SQLiteConnection:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_value: Optional[BaseException],
-        traceback: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         """
         with文終了時の処理。

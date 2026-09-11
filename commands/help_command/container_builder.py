@@ -1,6 +1,6 @@
 # commands/help_command/container_builder.py
 from pathlib import Path
-from typing import List
+
 import discord
 from discord import ui
 
@@ -121,7 +121,7 @@ def build_section_image_logs() -> ui.Container:
     return c
 
 
-def build_help_containers(search_option) -> List[ui.Container]:
+def build_help_containers(search_option) -> list[ui.Container]:
     container_dict: dict = {
         "basics": build_section_basics(),
         "commands": build_section_commands(),

@@ -1,13 +1,16 @@
 # required_score/embed_builder.py
-from typing import Iterable, Tuple, Any, Optional
+from collections.abc import Iterable
+from typing import Any
 
 from discord import Embed
-from models.nia.required_score_from_img.result import NiaRequiredScoreFromImgResult
+
 from config.settings import CHARACTERS
+from models.nia.required_score_from_img.result import NiaRequiredScoreFromImgResult
+
 
 def build_required_score_embed(
     result: NiaRequiredScoreFromImgResult,
-    override_pairs: Optional[Iterable[Tuple[str, Any]]] = None,
+    override_pairs: Iterable[tuple[str, Any]] | None = None,
 ) -> Embed:
     """
     override_pairs を与えると、そのペアのみを「必要スコア」欄に表示します。

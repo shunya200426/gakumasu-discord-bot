@@ -1,11 +1,16 @@
 # required_score_from_img/ui.py
-from typing import Optional
+
 import discord
 from discord import Interaction, app_commands
-from models.hajime.required_score_from_img.params import HajimeRequiredScoreFromImgParams
-from config.settings import NIA, CHARACTERS
-from .command import HajimeRequiredScoreFromImgCommand
+
 from commands.groups import hajime
+from config.settings import CHARACTERS
+from models.hajime.required_score_from_img.params import (
+    HajimeRequiredScoreFromImgParams,
+)
+
+from .command import HajimeRequiredScoreFromImgCommand
+
 
 @hajime.command(
     name="required_score_from_img",
@@ -63,9 +68,9 @@ async def nia_required_score_from_img_command(
     da試験終了時アビ: app_commands.Range[int, 0] = 0,
     vi試験終了時アビ: app_commands.Range[int, 0] = 0,
     # 編成画面: discord.Attachment,
-    目標評価ランク: Optional[str] = None,
-    目標スコア: Optional[app_commands.Range[int, 0]] = None,
-    キャラクター: Optional[str] = None,
+    目標評価ランク: str | None = None,
+    目標スコア: app_commands.Range[int, 0] | None = None,
+    キャラクター: str | None = None,
     # チャレンジアイテム: app_commands.Range[int, 0, 40] = NIA["master"]["challenge_bonus_max"],
     # アイドル強化月間: bool = False,
     画像ログ: bool = False

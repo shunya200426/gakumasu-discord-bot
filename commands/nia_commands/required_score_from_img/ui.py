@@ -1,11 +1,14 @@
 # required_score_from_img/ui.py
-from typing import Optional
+
 import discord
 from discord import Interaction, app_commands
-from models.nia.required_score_from_img.params import NiaRequiredScoreFromImgParams
-from config.settings import NIA, CHARACTERS
-from .command import NiaRequiredScoreFromImgCommand
+
 from commands.groups import nia
+from config.settings import CHARACTERS, NIA
+from models.nia.required_score_from_img.params import NiaRequiredScoreFromImgParams
+
+from .command import NiaRequiredScoreFromImgCommand
+
 
 @nia.command(
     name="required_score_from_img",
@@ -66,8 +69,8 @@ async def nia_required_score_from_img_command(
     オーディション: app_commands.Choice[str],
     スケジュール画面: discord.Attachment,
     編成画面: discord.Attachment,
-    目標評価ランク: Optional[str] = None,
-    目標スコア: Optional[app_commands.Range[int, 0]] = None,
+    目標評価ランク: str | None = None,
+    目標スコア: app_commands.Range[int, 0] | None = None,
     チャレンジアイテム: app_commands.Range[int, 0] = NIA["master"]["challenge_bonus_max"],
     アイドル強化月間: bool = False,
     画像保存: bool | None = None,

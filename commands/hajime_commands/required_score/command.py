@@ -1,19 +1,22 @@
 # hajime_commands/required_score/command.py
+
 import discord
 from discord import ui
+
 from commands.base_command import BaseCommand
-from models.hajime.required_score.params import HajimeRequiredScoreParams
-from models.hajime.required_score.result import HajimeRequiredScoreResult
+from commands.hajime_commands.final_grade.container_builder import (
+    build_final_grade_container,
+)
+from config.hajime_settings import HAJIME
+from config.settings import SETTINGS
 from models.hajime.final_grade.params import HajimeFinalGradeParams
 from models.hajime.final_grade.result import HajimeFinalGradeResult
+from models.hajime.required_score.params import HajimeRequiredScoreParams
+from models.hajime.required_score.result import HajimeRequiredScoreResult
 from scenarios import HajimeScenario
-from .container_builder import build_required_score_container
-from commands.hajime_commands.final_grade.container_builder import build_final_grade_container
-
-from typing import Optional, Dict, Tuple
 from utils.logger import get_logger
-from config.settings import SETTINGS
-from config.hajime_settings import HAJIME
+
+from .container_builder import build_required_score_container
 
 COMMAND_NAME = "hajime_required_score"
 logger = get_logger()
@@ -146,7 +149,7 @@ class HajimeRequiredScoreCommand(BaseCommand):
         self,
         scenario: HajimeScenario,
         params: HajimeRequiredScoreParams
-    ) -> Dict[str, object]:
+    ) -> dict[str, object]:
         
         # 目標の正規化（target_score 優先）
         thresholds = dict(SETTINGS["grade_thresholds"])     # 各グレードのスコアを取得して辞書へ変換
@@ -216,10 +219,10 @@ class HajimeRequiredScoreCommand(BaseCommand):
     
     def _build_pairs(
         self,
-        result_dict: Dict[str, object],
-        target_grade: Optional[str],
-        target_score: Optional[int],
-    ) -> Tuple[list, Optional[str], Optional[int]]:
+        result_dict: dict[str, object],
+        target_grade: str | None,
+        target_score: int | None,
+    ) -> tuple[list, str | None, int | None]:
         """
         表示ペア（タイトル, 値）を生成。embed_builder の override_pairs に渡す。
         戻り値: (pairs, 正規化済みランク or None, 正規化済みスコア or None)

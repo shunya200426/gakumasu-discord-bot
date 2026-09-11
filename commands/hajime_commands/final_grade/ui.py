@@ -1,11 +1,14 @@
 # hajime_commands/final_grade/ui.py
 
-from typing import Optional
+
 from discord import Interaction, app_commands
-from models.hajime.final_grade.params import HajimeFinalGradeParams
-from config.settings import CHARACTERS
-from .command import HajimeFinalGradeCommand
+
 from commands.groups import hajime
+from config.settings import CHARACTERS
+from models.hajime.final_grade.params import HajimeFinalGradeParams
+
+from .command import HajimeFinalGradeCommand
+
 
 @hajime.command(
     name="final_grade",
@@ -66,7 +69,7 @@ async def nia_final_grade_command(
     vo試験終了時アビ: app_commands.Range[int, 0] = 0,
     da試験終了時アビ: app_commands.Range[int, 0] = 0,
     vi試験終了時アビ: app_commands.Range[int, 0] = 0,
-    キャラクター: Optional[str] = None,
+    キャラクター: str | None = None,
     # アイドル強化月間: bool = False,
     # ほしのきらめき: int = 0
 ):

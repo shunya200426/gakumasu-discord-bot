@@ -2,7 +2,6 @@
 
 import sqlite3
 from datetime import datetime, timezone
-from typing import Optional
 
 
 class UserRepository:
@@ -16,8 +15,8 @@ class UserRepository:
     def upsert_user(
         self,
         user_id: int,
-        user_name: Optional[str],
-        display_name: Optional[str],
+        user_name: str | None,
+        display_name: str | None,
     ) -> None:
         """
         ユーザー情報を登録・更新する。
@@ -47,7 +46,7 @@ class UserRepository:
             ),
         )
 
-    def get_by_user_id(self, user_id: int) -> Optional[sqlite3.Row]:
+    def get_by_user_id(self, user_id: int) -> sqlite3.Row | None:
         """
         user_idからユーザー情報を取得する。
         """
@@ -119,9 +118,9 @@ class UserRepository:
     def add_block(
         self,
         user_id: int,
-        reason: Optional[str] = None,
-        user_message: Optional[str] = None,
-        blocked_by: Optional[int] = None,
+        reason: str | None = None,
+        user_message: str | None = None,
+        blocked_by: int | None = None,
     ) -> None:
         """
         ユーザーのコマンド実行を無効化する。
@@ -185,7 +184,7 @@ class UserRepository:
 
         return cursor.fetchone() is not None
 
-    def get_block(self, user_id: int) -> Optional[sqlite3.Row]:
+    def get_block(self, user_id: int) -> sqlite3.Row | None:
         """
         user_idからブロック情報を取得する。
 

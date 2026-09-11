@@ -1,21 +1,28 @@
 # hajime_commands/required_score_from_img/command.py
+import time
+
 import discord
-from discord import ui, Embed
+from discord import Embed, ui
+
+from commands.hajime_commands.required_score.command import HajimeRequiredScoreCommand
+from commands.hajime_commands.required_score.container_builder import (
+    build_required_score_container,
+)
+
+# from commands.hajime_commands.final_grade.container_builder import build_final_grade_container
 from models.hajime.required_score.params import HajimeRequiredScoreParams
 from models.hajime.required_score.result import HajimeRequiredScoreResult
-from models.hajime.required_score_from_img.params import HajimeRequiredScoreFromImgParams
+from models.hajime.required_score_from_img.params import (
+    HajimeRequiredScoreFromImgParams,
+)
+from ocr.core import OCR
+
 # from models.hajime.final_grade.params import HajimeFinalGradeParams
 # from models.hajime.final_grade.result import HajimeFinalGradeResult
 from scenarios import HajimeScenario
-from ocr.core import OCR
-from commands.hajime_commands.required_score.command import HajimeRequiredScoreCommand
-from commands.hajime_commands.required_score.container_builder import build_required_score_container
-from .container_builder import build_error_container
-# from commands.hajime_commands.final_grade.container_builder import build_final_grade_container
-from config.settings import SETTINGS
-from typing import Optional, Dict, Tuple
 from utils.logger import get_logger
-import time
+
+from .container_builder import build_error_container
 
 COMMAND_NAME = "hajime_required_score_from_img"
 logger = get_logger()
@@ -100,7 +107,7 @@ class ParamEditModal(ui.Modal):
                         merged[k] = int(str(merged[k]).strip() or 0)
                         if merged[k] < 0:
                             raise ValueError(f"{k} は0以上にしてください")
-                    except Exception as e:
+                    except (ValueError, TypeError) as e:
                         await interaction.response.send_message(
                             embed=Embed(title="入力エラー", description=f"{k}: {e}"),
                             ephemeral=True
@@ -555,7 +562,7 @@ class HajimeRequiredScoreFromImgCommand(HajimeRequiredScoreCommand):
         static = self._static
         
         # 2) kirameki は強化月間ONのときのみ有効
-        kirameki = merged.get("kirameki", 0) if static["is_boost_active"] else 0
+        kirameki = merged.get("kirameki", 0) if static["is_boost_active"] else 0    # noqa: F841
 
         # 3) ドメイン計算を再実行
         async with self.scoped_ctx(interaction):

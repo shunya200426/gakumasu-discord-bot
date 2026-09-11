@@ -1,5 +1,7 @@
 from pathlib import Path
+
 from discord import ui
+
 
 def _fmt_num(v):
     return "__ERROR__ " if v is None else str(v)

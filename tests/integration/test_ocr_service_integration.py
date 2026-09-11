@@ -9,7 +9,6 @@ import pytest
 from ocr.tesseract_engine import TesseractEngine
 from services.ocr_service import OcrService
 
-
 FIXTURES_ROOT = Path(__file__).resolve().parents[1] / "fixtures"
 IMAGE_ROOT = FIXTURES_ROOT / "images" / "ocr"
 EXPECTED_ROOT = FIXTURES_ROOT / "expected"
@@ -128,7 +127,7 @@ def test_bonus_ocr(
     ocr_service: OcrService,
     class_name: str,
     filename: str,
-    expected: int | float,
+    expected: float,
 ) -> None:
     """
     ボーナス系OCRを実画像で検証する。

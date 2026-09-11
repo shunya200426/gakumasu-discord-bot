@@ -1,8 +1,10 @@
 # scenariosbase.py
+import math
 from abc import ABC, abstractmethod
+
 from config.settings import SETTINGS
 from utils.logger import get_logger
-import math
+
 
 class ScenarioBase(ABC):
     def __init__(self, mode: str):
@@ -49,4 +51,3 @@ class ScenarioBase(ABC):
         評価値計算
         子クラスでそれぞれ実装
         """
-        pass

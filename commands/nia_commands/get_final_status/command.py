@@ -1,13 +1,16 @@
 # commands/nia_commands/final_grade/command.py
 from discord import ui
+
 from commands.base_command import BaseCommand
+from config.nia_settings import NIA
 from models.nia.get_final_status.params import NiaGetFinalStatusParams
 from models.nia.get_final_status.result import NiaGetFinalStatusResult
 from scenarios import NiaScenario
+from utils.logger import logger
+
 # from .embed_builder import build_get_final_status_embed  # Embed構築関数
 from .container_builder import build_get_final_status_container
-from utils.logger import logger
-from config.nia_settings import NIA
+
 
 class NiaGetFinalStarusCommand(BaseCommand):
     """
@@ -24,7 +27,7 @@ class NiaGetFinalStarusCommand(BaseCommand):
         # シナリオ実行
         scenario = NiaScenario(mode=params.mode)
 
-        for audition in params.audition_dict.keys():
+        for audition in params.audition_dict:
 
             # 計算実行
             get_vo_status, get_da_status, get_vi_status = scenario.calculate_get_status(

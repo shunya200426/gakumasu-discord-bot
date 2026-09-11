@@ -1,6 +1,5 @@
 import logging
 from dataclasses import replace
-from typing import Dict, Optional, Tuple
 
 from config.character_settings import CHARACTERS
 from config.nia_settings import NIA
@@ -24,9 +23,9 @@ class RequiredScoreCalculator:
         character: str,
         mode: str,
         audition: str,
-        target_grade: Optional[str],
-        target_score: Optional[int],
-    ) -> Dict[str, object]:
+        target_grade: str | None,
+        target_score: int | None,
+    ) -> dict[str, object]:
         """
         共有コア：逆算ロジック本体
         戻り値: result_dict（"SS" などのキー: dict or "CLEAR不可" or None）
@@ -180,10 +179,10 @@ class RequiredScoreCalculator:
 
     def build_pairs(
         self,
-        result_dict: Dict[str, object],
-        target_grade: Optional[str],
-        target_score: Optional[int],
-    ) -> Tuple[list, Optional[str], Optional[int]]:
+        result_dict: dict[str, object],
+        target_grade: str | None,
+        target_score: int | None,
+    ) -> tuple[list, str | None, int | None]:
         """
         表示ペア（タイトル, 値）を生成。embed_builder の override_pairs に渡す。
         戻り値: (pairs, 正規化済みランク or None, 正規化済みスコア or None)

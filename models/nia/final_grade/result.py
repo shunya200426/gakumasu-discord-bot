@@ -1,6 +1,8 @@
 # models/nia/final_grade_result.py
 from dataclasses import dataclass
+
 from .params import NiaFinalGradeParams
+
 
 @dataclass
 class NiaFinalGradeResult(NiaFinalGradeParams):

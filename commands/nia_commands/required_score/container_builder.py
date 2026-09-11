@@ -1,16 +1,18 @@
 # required_score/container_builder.py
-from typing import Iterable, Tuple, Any, Optional
+from collections.abc import Iterable
 from pathlib import Path
+from typing import Any
 
 from discord import ui
-from models.nia.required_score.result import NiaRequiredScoreResult
+
 from config.nia_settings import NIA
 from config.settings import CHARACTERS
+from models.nia.required_score.result import NiaRequiredScoreResult
 
 
 def build_required_score_container(
     result: NiaRequiredScoreResult,
-    override_pairs: Optional[Iterable[Tuple[str, Any]]] = None,
+    override_pairs: Iterable[tuple[str, Any]] | None = None,
 ) -> ui.Container:
     # 埋め込みカラーの設定
     character_color = CHARACTERS[result.character]["color"]
@@ -24,7 +26,7 @@ def build_required_score_container(
     
     # きらめきの設定
     if result.is_boost_active:
-        kirameki_block = "### アイドル強化月間適用\n**ほしのきらめき: {v}**\n".format(v=result.kirameki)
+        kirameki_block = f"### アイドル強化月間適用\n**ほしのきらめき: {result.kirameki}**\n"
     else:
         kirameki_block = ""
 

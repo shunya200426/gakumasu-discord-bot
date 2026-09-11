@@ -9,7 +9,9 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
+JST = ZoneInfo("Asia/Tokyo")
 
 # =========
 # フォーマッタ
@@ -18,7 +20,10 @@ class JsonFormatter(logging.Formatter):
     """構造化ログ(JSON)。可視化/検索ツールに流し込みやすい。"""
     def format(self, record: logging.LogRecord) -> str:
         payload = {
-            "ts": datetime.fromtimestamp(record.created).isoformat(timespec="seconds"),
+            "ts": datetime.fromtimestamp(
+                record.created, 
+                tz=JST,
+            ).isoformat(timespec="seconds"),
             "level": record.levelname,
             "logger": record.name,
             "msg": record.getMessage(),
@@ -223,7 +228,7 @@ def get_logger(
     return base
 
 
-_CURRENT_CTX: ContextVar[dict] = ContextVar("_CURRENT_CTX", default={})
+_CURRENT_CTX: ContextVar[dict] = ContextVar("_CURRENT_CTX", default=None)
 
 
 class GuildContextFilter(logging.Filter):

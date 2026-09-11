@@ -19,7 +19,6 @@ from ocr.tesseract_engine import TesseractEngine
 from services.inference_service import InferenceService
 from services.ocr_service import OcrService
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 YOLO_MODEL_PATH = (

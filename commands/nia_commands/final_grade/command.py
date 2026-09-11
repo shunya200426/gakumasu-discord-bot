@@ -1,12 +1,15 @@
 # commands/nia_commands/final_grade/command.py
 from discord import ui
+
 from commands.base_command import BaseCommand
 from models.nia.final_grade.params import NiaFinalGradeParams
 from models.nia.final_grade.result import NiaFinalGradeResult
 from scenarios import NiaScenario
+from utils.logger import logger
+
 # from .embed_builder import build_final_grade_embed  # Embed構築関数
 from .container_builder import build_final_grade_container
-from utils.logger import logger
+
 
 class NiaFinalGradeCommand(BaseCommand):
     """

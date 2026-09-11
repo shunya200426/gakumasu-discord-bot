@@ -673,8 +673,7 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
 
         except Exception as exc:
             logger.exception(
-                "Image inference failed: %s",
-                exc,
+                "Image inference failed",
             )
 
             error_embed = discord.Embed(

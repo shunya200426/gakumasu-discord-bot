@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+import inspect
 import json
 import os
 import shutil
@@ -382,7 +383,7 @@ class BaseCommand(ABC):
             ctx = await build_ctx_from_interaction(
                 interaction
             )
-        except Exception:
+        except Exception:  # noqa: BLE001 - ログ文脈生成失敗で本処理を止めない
             ctx = {}
 
         if self._request_id:
@@ -661,7 +662,7 @@ class BaseCommand(ABC):
 
         if (
             original_execute is None
-            or not asyncio.iscoroutinefunction(
+            or not inspect.iscoroutinefunction(
                 original_execute
             )
         ):
@@ -696,7 +697,7 @@ class BaseCommand(ABC):
                     else {}
                 )
 
-            except Exception:
+            except Exception:  # noqa: BLE001 - ログ文脈生成失敗で本処理を止めない
                 ctx = {}
 
             if self._request_id:

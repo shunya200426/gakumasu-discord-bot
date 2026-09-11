@@ -1,6 +1,7 @@
 # required_score_from_img/embed_builder.py
 from discord import Embed
 
+
 def _fmt_num(v):
     return "__ERROR__" if v is None else str(v)
 

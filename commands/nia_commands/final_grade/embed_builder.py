@@ -1,8 +1,10 @@
 # commands/nia_commands/final_grade/embed_builder.py
 
 from discord import Embed
-from models.nia.final_grade.result import NiaFinalGradeResult
+
 from config.settings import SETTINGS
+from models.nia.final_grade.result import NiaFinalGradeResult
+
 
 def build_final_grade_embed(result: NiaFinalGradeResult) -> Embed:
     embed = Embed(
@@ -26,7 +28,7 @@ def build_final_grade_embed(result: NiaFinalGradeResult) -> Embed:
 
     embed.add_field(
         name="最終スコア",
-        value=(f"**{str(result.final_score)}: {result.final_grade}**\n\u200b"),
+        value=(f"**{result.final_score!s}: {result.final_grade}**\n\u200b"),
         inline=False
     )
 

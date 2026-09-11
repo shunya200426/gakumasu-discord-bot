@@ -2,10 +2,8 @@
 
 import logging
 import sqlite3
-from typing import Optional
 
 import discord
-
 
 log = logging.getLogger("gakumasu_bot")
 
@@ -39,7 +37,7 @@ async def build_ctx_from_interaction(
 
     if guild_id is not None and _guild_repository is not None:
         try:
-            guild_data: Optional[sqlite3.Row] = (
+            guild_data: sqlite3.Row | None = (
                 _guild_repository.get_by_guild_id(guild_id)
             )
 

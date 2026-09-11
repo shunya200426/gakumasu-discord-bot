@@ -1,12 +1,14 @@
 # hajime_commands/final_grade/command.py
 import discord
 from discord import ui
+
 from commands.base_command import BaseCommand
 from models.hajime.final_grade.params import HajimeFinalGradeParams
 from models.hajime.final_grade.result import HajimeFinalGradeResult
 from scenarios import HajimeScenario
-from .container_builder import build_final_grade_container
 from utils.logger import get_logger
+
+from .container_builder import build_final_grade_container
 
 COMMAND_NAME = "hajime_final_grade"
 logger = get_logger()

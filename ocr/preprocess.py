@@ -10,7 +10,6 @@ from __future__ import annotations
 import cv2
 import numpy as np
 
-
 DEFAULT_SCALE = 3.0
 
 
@@ -104,7 +103,7 @@ def preprocess_percentage(
         )
 
     width = image.shape[1]
-    trim_x = int(round(width * left_trim_ratio))
+    trim_x = round(width * left_trim_ratio)
 
     trimmed = image[:, trim_x:]
 

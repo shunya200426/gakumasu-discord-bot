@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -256,7 +256,7 @@ async def test_expired_directory_is_removed(
     retention_days = 180
 
     expired_date = (
-        datetime.now().date()
+        date.today
         - timedelta(days=retention_days + 1)
     )
 

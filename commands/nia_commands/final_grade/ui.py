@@ -1,8 +1,11 @@
 from discord import Interaction, app_commands
-from models.nia.final_grade.params import NiaFinalGradeParams
-from config.settings import NIA, CHARACTERS
-from .command import NiaFinalGradeCommand
+
 from commands.groups import nia
+from config.settings import CHARACTERS, NIA
+from models.nia.final_grade.params import NiaFinalGradeParams
+
+from .command import NiaFinalGradeCommand
+
 
 @nia.command(
     name="final_grade",

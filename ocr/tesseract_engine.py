@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from threading import Lock
+from typing import Self
 
 import cv2
 import numpy as np
@@ -16,7 +17,6 @@ from PIL import Image
 from tesserocr import OEM, PSM, PyTessBaseAPI
 
 from utils.logger import get_logger
-
 
 logger = get_logger()
 
@@ -274,7 +274,7 @@ class TesseractEngine:
 
             logger.info("TesseractEngine closed")
 
-    def __enter__(self) -> TesseractEngine:
+    def __enter__(self) -> Self:
         """with文の開始時に自身を返す。"""
         self._ensure_open()
         return self

@@ -1,15 +1,19 @@
 # hajime_commands/required_score/embed_builder.py
-from typing import Iterable, Tuple, Any, Optional
+from collections.abc import Iterable
 from pathlib import Path
+from typing import Any
+
 import discord
 from discord import ui
-from models.hajime.required_score.result import HajimeRequiredScoreResult
+
 from config.hajime_settings import HAJIME
 from config.settings import CHARACTERS
+from models.hajime.required_score.result import HajimeRequiredScoreResult
+
 
 def build_required_score_container(
     result: HajimeRequiredScoreResult,
-    override_pairs: Optional[Iterable[Tuple[str, Any]]] = None,
+    override_pairs: Iterable[tuple[str, Any]] | None = None,
 ) -> ui.Container:
     
     # 埋め込みカラーの設定
@@ -27,7 +31,7 @@ def build_required_score_container(
     
     # きらめきの設定
     if result.is_boost_active:
-        kirameki_block = "### アイドル強化月間適用\n**ほしのきらめき: {v}**\n".format(v=result.kirameki)
+        kirameki_block = f"### アイドル強化月間適用\n**ほしのきらめき: {result.kirameki}**\n"
     else:
         kirameki_block = ""
         

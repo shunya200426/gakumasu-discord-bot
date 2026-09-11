@@ -1,8 +1,9 @@
 # required_score_from_img/params.py
 
-import discord
 from dataclasses import dataclass
-from typing import Optional
+
+import discord
+
 
 @dataclass
 class NiaRequiredScoreFromImgParams:
@@ -26,8 +27,8 @@ class NiaRequiredScoreFromImgParams:
     is_boost_active: bool
 
     # 目標評価/スコア
-    target_grade: Optional[str] = None   
-    target_score: Optional[int] = None   
+    target_grade: str | None = None   
+    target_score: int | None = None   
 
     # 今回指定された画像保存同意
     image_save_consent: bool | None = None

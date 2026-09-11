@@ -1,7 +1,9 @@
 # models/hajime/final_grade/result.py
 
 from dataclasses import dataclass
+
 from .params import HajimeFinalGradeParams
+
 
 @dataclass
 class HajimeFinalGradeResult(HajimeFinalGradeParams):

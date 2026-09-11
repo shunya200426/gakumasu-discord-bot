@@ -1,8 +1,11 @@
 from discord import Interaction, app_commands
-from models.nia.get_final_status.params import NiaGetFinalStatusParams
-from config.settings import NIA, CHARACTERS
-from .command import NiaGetFinalStarusCommand
+
 from commands.groups import nia
+from config.settings import CHARACTERS, NIA
+from models.nia.get_final_status.params import NiaGetFinalStatusParams
+
+from .command import NiaGetFinalStarusCommand
+
 
 @nia.command(
     name="get_final_parameters",

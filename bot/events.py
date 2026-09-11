@@ -63,7 +63,7 @@ def register_events(
                     len(synced),
                 )
 
-        except Exception:
+        except (discord.HTTPException, ValueError):
             log.error(
                 "Command sync failed:\n%s",
                 traceback.format_exc(),

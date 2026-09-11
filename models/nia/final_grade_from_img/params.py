@@ -1,5 +1,7 @@
 from dataclasses import dataclass
+
 import discord
+
 
 @dataclass
 class NiaFinalGradeFromImgParams:

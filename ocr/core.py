@@ -157,7 +157,7 @@ class OCR:
         """
         num_contours = len(contours)
         max_area = -1
-        for i in range(0, num_contours):
+        for i in range(num_contours):
             x, y, w, h = cv2.boundingRect(contours[i])
             area = h * w
             if max_area < area:
@@ -201,7 +201,7 @@ class OCR:
         ret, param_bin_img = cv2.threshold(param_gray_img, 210, 255, cv2.THRESH_BINARY)
         contours = self._get_contours(param_bin_img, PARAMETER_KSIZE)
         digit_boxes = []
-        for i in range(0, len(contours)):
+        for i in range(len(contours)):
             x, y, w, h = cv2.boundingRect(contours[i])
             digit_boxes.append((x,y,w,h))
         merged_boxes, line_groups = self._merge_boxes_on_line(digit_boxes, y_tol=PARAMETER_MERGE_PX, gap_tol=PARAMETER_MERGE_PX)
@@ -261,7 +261,7 @@ class OCR:
             logger.debug("retry read fans")
             contours = self._get_contours(fans_bin_img, FANS_KSIZE)
             fan_boxes = []
-            for i in range(0, len(contours)):
+            for i in range(len(contours)):
                 x, y, w, h = cv2.boundingRect(contours[i])
                 fan_boxes.append((x,y,w,h))
             merged_fan_boxes, line_groups = self._merge_boxes_on_line(fan_boxes, gap_tol=FANS_MERGE_PX)
@@ -348,7 +348,7 @@ class OCR:
         ret, bonus_bin_img = cv2.threshold(bonus_gray_img, 235, 255, cv2.THRESH_BINARY_INV)
         contours = self._get_contours(bonus_bin_img, BONUS_KSIZE)
         digit_boxes = []
-        for i in range(0, len(contours)):
+        for i in range(len(contours)):
             x, y, w, h = cv2.boundingRect(contours[i])
             digit_boxes.append((x,y,w,h))
 
@@ -432,7 +432,7 @@ class OCR:
         ret, scores_bin_img = cv2.threshold(scores_gray_img, 150, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
         contours = self._get_contours(scores_bin_img, SCORE_KSIZE)
         digit_boxes = []
-        for i in range(0, len(contours)):
+        for i in range(len(contours)):
             x, y, w, h = cv2.boundingRect(contours[i])
             digit_boxes.append((x,y,w,h))
 

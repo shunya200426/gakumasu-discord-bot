@@ -1,11 +1,14 @@
 # hajime_commands/required_score/ui.py
 
-from typing import Optional
+
 from discord import Interaction, app_commands
-from models.hajime.required_score.params import HajimeRequiredScoreParams
-from config.settings import CHARACTERS
-from .command import HajimeRequiredScoreCommand
+
 from commands.groups import hajime
+from config.settings import CHARACTERS
+from models.hajime.required_score.params import HajimeRequiredScoreParams
+
+from .command import HajimeRequiredScoreCommand
+
 
 @hajime.command(
     name="required_score",
@@ -64,9 +67,9 @@ async def nia_final_grade_command(
     vo試験終了時アビ: app_commands.Range[int, 0] = 0,
     da試験終了時アビ: app_commands.Range[int, 0] = 0,
     vi試験終了時アビ: app_commands.Range[int, 0] = 0,
-    目標評価ランク: Optional[str] = None,
-    目標スコア: Optional[app_commands.Range[int, 0]] = None,
-    キャラクター: Optional[str] = None,
+    目標評価ランク: str | None = None,
+    目標スコア: app_commands.Range[int, 0] | None = None,
+    キャラクター: str | None = None,
     # アイドル強化月間: bool = False,
     # ほしのきらめき: int = 0
 ):

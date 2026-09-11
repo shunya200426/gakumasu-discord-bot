@@ -1,9 +1,11 @@
 from pathlib import Path
 
 from discord import ui
-from models.nia.get_final_status.result import NiaGetFinalStatusResult
+
 from config.nia_settings import NIA
 from config.settings import CHARACTERS
+from models.nia.get_final_status.result import NiaGetFinalStatusResult
+
 
 def build_get_final_status_container(result: NiaGetFinalStatusResult) -> ui.Container:
     # 埋め込みカラーの設定
@@ -35,7 +37,7 @@ def build_get_final_status_container(result: NiaGetFinalStatusResult) -> ui.Cont
     )
     container.add_item(ui.TextDisplay(content))
 
-    for audition in result.audition_dict.keys():
+    for audition in result.audition_dict:
         container.add_item(ui.Separator())
         audition_name = NIA[result.mode][audition]["name"]
 

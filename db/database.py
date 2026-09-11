@@ -2,16 +2,15 @@
 
 import sqlite3
 
-from config.paths import REQUIRED_DIRECTORIES, DATABASE_PATH
+from config.paths import DATABASE_PATH, REQUIRED_DIRECTORIES
 from db.connection import SQLiteConnection
-from db.schema import create_tables
-
 from db.repositories import (
     GuildRepository,
-    UserRepository,
-    LogRepository,
     InferenceRepository,
+    LogRepository,
+    UserRepository,
 )
+from db.schema import create_tables
 
 
 class DatabaseManager:

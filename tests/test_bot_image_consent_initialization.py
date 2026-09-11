@@ -5,7 +5,6 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-
 MAIN_PATH = Path(__file__).resolve().parents[1] / "main.py"
 
 

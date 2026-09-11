@@ -1,8 +1,10 @@
 # get_final_status/embed_builder.py
 
 from discord import Embed
-from models.nia.get_final_status.result import NiaGetFinalStatusResult
+
 from config.settings import CHARACTERS
+from models.nia.get_final_status.result import NiaGetFinalStatusResult
+
 
 def build_get_final_status_embed(result: NiaGetFinalStatusResult) -> Embed:
     embed = Embed(

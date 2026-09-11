@@ -2,7 +2,6 @@
 
 import sqlite3
 from datetime import datetime, timezone
-from typing import Optional
 
 
 class InferenceRepository:
@@ -16,21 +15,21 @@ class InferenceRepository:
     def save_inference_log(
         self,
         request_id: str,
-        guild_id: Optional[int],
-        channel_id: Optional[int],
-        user_id: Optional[int],
+        guild_id: int | None,
+        channel_id: int | None,
+        user_id: int | None,
         command_name: str,
         image_role: str,
         image_path: str | None,
-        export_path: Optional[str],
+        export_path: str | None,
         model_name: str,
         model_format: str,
-        image_width: Optional[int],
-        image_height: Optional[int],
-        preprocess_ms: Optional[float],
-        inference_ms: Optional[float],
-        postprocess_ms: Optional[float],
-        total_ms: Optional[float],
+        image_width: int | None,
+        image_height: int | None,
+        preprocess_ms: float | None,
+        inference_ms: float | None,
+        postprocess_ms: float | None,
+        total_ms: float | None,
         status: str,
     ) -> int:
         """
@@ -90,12 +89,12 @@ class InferenceRepository:
         self,
         inference_log_id: int,
         class_name: str,
-        confidence: Optional[float],
+        confidence: float | None,
         x1: float,
         y1: float,
         x2: float,
         y2: float,
-        crop_path: Optional[str],
+        crop_path: str | None,
     ) -> int:
         """
         YOLOの検出結果を保存し、作成された detection_results.id を返す。

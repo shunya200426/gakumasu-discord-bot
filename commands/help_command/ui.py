@@ -1,8 +1,11 @@
 # command/help_command/ui.py
-from typing import Optional
+
 from discord import Interaction, app_commands
-from .command import HelpCommand
+
 from commands.groups import gkms
+
+from .command import HelpCommand
+
 
 @gkms.command(name="help", description="各コマンドのマニュアルを表示します")
 
@@ -20,5 +23,5 @@ from commands.groups import gkms
     ]
 )
 
-async def help_command(interaction: Interaction, 検索: Optional[str] = None,):
+async def help_command(interaction: Interaction, 検索: str | None = None,):
     await HelpCommand(interaction).execute(検索)

@@ -1,6 +1,9 @@
 from discord import ui
+
 from commands.base_command import BaseCommand
-from .container_builder import build_help_containers 
+
+from .container_builder import build_help_containers
+
 COMMAND_NAME = "help_command"
 
 class HelpCommand(BaseCommand):

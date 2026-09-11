@@ -1,9 +1,12 @@
 import discord
 from discord import Interaction, app_commands
-from models.nia.final_grade_from_img.params import NiaFinalGradeFromImgParams
-from config.settings import NIA, CHARACTERS
-from .command import NiaFinalGradeFromImgCommand
+
 from commands.groups import nia
+from config.settings import CHARACTERS, NIA
+from models.nia.final_grade_from_img.params import NiaFinalGradeFromImgParams
+
+from .command import NiaFinalGradeFromImgCommand
+
 
 @nia.command(
     name="final_grade_from_img",

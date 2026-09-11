@@ -2,7 +2,6 @@
 
 import sqlite3
 from datetime import datetime, timezone
-from typing import Optional
 
 
 class LogRepository:
@@ -16,9 +15,9 @@ class LogRepository:
     def add_command_log(
         self,
         request_id: str,
-        guild_id: Optional[int],
-        channel_id: Optional[int],
-        user_id: Optional[int],
+        guild_id: int | None,
+        channel_id: int | None,
+        user_id: int | None,
         command_name: str,
         status: str,
     ) -> None:
@@ -53,11 +52,11 @@ class LogRepository:
 
     def add_error_log(
         self,
-        request_id: Optional[str],
-        guild_id: Optional[int],
-        user_id: Optional[int],
+        request_id: str | None,
+        guild_id: int | None,
+        user_id: int | None,
         error_type: str,
-        message: Optional[str],
+        message: str | None,
     ) -> None:
         """
         エラーログを保存する。

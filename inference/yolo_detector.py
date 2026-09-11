@@ -16,7 +16,6 @@ from ultralytics import YOLO
 from inference.result import DetectionResult
 from utils.logger import get_logger
 
-
 logger = get_logger()
 
 
@@ -236,11 +235,11 @@ class YoloDetector:
             confidence_list,
             class_id_list,
         ):
-            class_id = int(class_id_value)
+            class_id = class_id_value
             class_name = self._get_class_name(names, class_id)
 
             x1, y1, x2, y2 = (
-                int(round(float(coordinate)))
+                round(float(coordinate))
                 for coordinate in xyxy
             )
 

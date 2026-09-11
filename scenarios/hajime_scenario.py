@@ -1,11 +1,13 @@
 # scenarios/hajime.py
-from typing import Dict, List
-from .base_scenario import ScenarioBase
+import math
+
+from config.settings import HAJIME
 from models.hajime.final_grade.params import HajimeFinalGradeParams
 from models.hajime.final_grade.result import HajimeFinalGradeResult
-from config.settings import HAJIME
 from utils.logger import logger
-import math
+
+from .base_scenario import ScenarioBase
+
 
 class HajimeScenario(ScenarioBase):
     def __init__(self, mode: str):
@@ -95,15 +97,14 @@ class HajimeScenario(ScenarioBase):
         required eval points -> minimal raw score (ceil)
         """
         table = self.settings[self.mode]["score_attenuation"]["final_exam"]
-        thresholds: List[int] = table["thresholds"]
-        coefs: List[int] = table["coefficients"]
+        thresholds: list[int] = table["thresholds"]
+        coefs: list[int] = table["coefficients"]
         den: int = table["den"]
 
         if required_eval_points <= 0:
             return 0
 
         remain = float(required_eval_points)
-        score = 0
 
         # finite intervals
         for i in range(len(thresholds) - 1):
