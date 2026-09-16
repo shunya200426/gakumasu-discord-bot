@@ -325,3 +325,16 @@ async def test_non_date_directory_is_not_removed(
 
     assert unrelated_directory.exists()
     assert unrelated_file.exists()
+
+@pytest.mark.asyncio
+async def test_mid_and_final_exam_roles_have_distinct_json_paths(tmp_path: Path) -> None:
+    service = InferenceExportService(export_directory=tmp_path)
+    paths = []
+    for role in ("mid_exam_score", "final_exam_score"):
+        path = await service.save(
+            guild_id=1, user_id=2, request_id="request-exams",
+            image_role=role, inference_result=_build_inference_result(),
+        )
+        paths.append(path)
+        assert json.loads(Path(path).read_text(encoding="utf-8"))["image_role"] == role
+    assert paths[0] != paths[1]

@@ -1,0 +1,83 @@
+# final_grade_from_img/ui.py
+
+import discord
+from discord import Interaction, app_commands
+
+from commands.groups import hajime
+from config.character_settings import CHARACTERS
+from models.hajime.final_grade_from_img.params import (
+    HajimeFinalGradeFromImgParams,
+)
+
+from .command import HajimeFinalGradeFromImgCommand
+
+
+@hajime.command(
+    name="final_grade_from_img",
+    description="最終評価を画像から計算します",
+)
+@app_commands.describe(
+    キャラクター="キャラクターを選択",
+    難易度="シナリオの難易度を選択",
+    スケジュール画面="P手帳 スケジュール画面のスクリーンショット",
+    中間試験スコア画面="中間試験のスコアログ画面",
+    中間試験スコア="中間試験のスコアログ画面がない場合はこちらから入力",
+    vo試験終了時アビ="Voの試験終了時に上昇するパラメータを入力",
+    da試験終了時アビ="Daの試験終了時に上昇するパラメータを入力",
+    vi試験終了時アビ="Viの試験終了時に上昇するパラメータを入力",
+    編成画面="P手帳 編成画面のスクリーンショット",
+    最終試験スコア画面="最終試験のスコアログ画面",
+    最終試験順位="最終試験順位",
+    アイドル強化月間="アイドル強化月間を適用しますか？",
+    画像ログ=("精度向上用の画像保存設定（未指定の場合は現在の設定を維持します）"),
+)
+@app_commands.choices(
+    キャラクター=[
+        app_commands.Choice(name=info["name"], value=key)
+        for key, info in CHARACTERS.items()
+    ]
+)
+@app_commands.choices(難易度=[app_commands.Choice(name="レジェンド", value="legend")])
+@app_commands.choices(
+    最終試験順位=[
+        app_commands.Choice(name="1位", value="first"),
+        app_commands.Choice(name="2位", value="second"),
+        app_commands.Choice(name="3位", value="third"),
+        app_commands.Choice(name="4位以下", value="other"),
+    ]
+)
+async def hajime_final_grade_from_img_command(
+    interaction: Interaction,
+    難易度: app_commands.Choice[str],
+    スケジュール画面: discord.Attachment,
+    編成画面: discord.Attachment,
+    最終試験スコア画面: discord.Attachment,
+    最終試験順位: app_commands.Choice[str],
+    中間試験スコア画面: discord.Attachment | None = None,
+    中間試験スコア: app_commands.Range[int, 0, 200000] = 50000,
+    vo試験終了時アビ: app_commands.Range[int, 0] = 0,
+    da試験終了時アビ: app_commands.Range[int, 0] = 0,
+    vi試験終了時アビ: app_commands.Range[int, 0] = 0,
+    キャラクター: str | None = None,
+    アイドル強化月間: bool = False,
+    画像ログ: bool | None = None,
+):
+    # Params組み立て
+    params = HajimeFinalGradeFromImgParams(
+        mode=難易度.value,
+        vo_ability=vo試験終了時アビ,
+        da_ability=da試験終了時アビ,
+        vi_ability=vi試験終了時アビ,
+        schedule_img=スケジュール画面,
+        mid_exam_score_img=中間試験スコア画面,
+        mid_exam_score=中間試験スコア,
+        character=キャラクター,
+        is_boost_active=アイドル強化月間,
+        party_img=編成画面,
+        final_exam_score_img=最終試験スコア画面,
+        final_exam_rank=最終試験順位.value,
+        save_agree=画像ログ,
+    )
+
+    # コマンド処理
+    await HajimeFinalGradeFromImgCommand(interaction).execute(params)

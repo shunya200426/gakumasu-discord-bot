@@ -11,12 +11,16 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from commands.base_command import BaseCommand
+from commands.hajime_commands.final_grade_from_img.ui import (
+    hajime_final_grade_from_img_command,
+)
 from commands.nia_commands.final_grade_from_img.ui import (
     nia_final_grade_from_img_command,
 )
 from commands.nia_commands.required_score_from_img.ui import (
     nia_required_score_from_img_command,
 )
+from models.hajime.final_grade_from_img.params import HajimeFinalGradeFromImgParams
 from models.nia.final_grade_from_img.params import (
     NiaFinalGradeFromImgParams,
 )
@@ -92,15 +96,14 @@ def test_resolve_image_consent_passes_requested_value(
             ImageConsentResult(None, True, True),
             (
                 "画像保存へのご協力ありがとうございます！\n"
-                "今後は設定を変更するまで、入力画像および"
-                "推論・切り抜き画像を保存します。"
+                "今後は設定を変更するまで、入力画像を保存します。"
             ),
         ),
         (
             ImageConsentResult(None, False, True),
             (
                 "画像保存を無効にしました。\n"
-                "今回以降の入力画像および推論・切り抜き画像は"
+                "今回以降の入力画像は"
                 "保存されません。"
             ),
         ),
@@ -112,7 +115,7 @@ def test_resolve_image_consent_passes_requested_value(
             ImageConsentResult(True, False, True),
             (
                 "画像保存を無効にしました。\n"
-                "今回以降の入力画像および推論・切り抜き画像は"
+                "今回以降の入力画像は"
                 "保存されません。"
             ),
         ),
@@ -124,8 +127,7 @@ def test_resolve_image_consent_passes_requested_value(
             ImageConsentResult(False, True, True),
             (
                 "画像保存へのご協力ありがとうございます！\n"
-                "今後は設定を変更するまで、入力画像および"
-                "推論・切り抜き画像を保存します。"
+                "今後は設定を変更するまで、入力画像を保存します。"
             ),
         ),
     ],
@@ -185,19 +187,21 @@ def test_notification_failure_does_not_discard_consent_result() -> None:
 
 
 @pytest.mark.parametrize(
-    "slash_command",
+    ("slash_command", "argument_name"),
     [
-        nia_final_grade_from_img_command,
-        nia_required_score_from_img_command,
+        (nia_final_grade_from_img_command, "画像保存"),
+        (nia_required_score_from_img_command, "画像保存"),
+        (hajime_final_grade_from_img_command, "画像ログ"),
     ],
 )
 def test_image_command_has_optional_consent_argument(
     slash_command: object,
+    argument_name: str,
 ) -> None:
     signature = inspect.signature(
         slash_command.callback
     )
-    parameter = signature.parameters["画像保存"]
+    parameter = signature.parameters[argument_name]
 
     assert parameter.annotation == bool | None
     assert parameter.default is None
@@ -205,7 +209,7 @@ def test_image_command_has_optional_consent_argument(
     discord_parameter = next(
         item
         for item in slash_command.parameters
-        if item.name == "画像保存"
+        if item.name == argument_name
     )
     assert discord_parameter.required is False
 
@@ -222,6 +226,10 @@ def test_image_params_keep_requested_consent_separate() -> None:
         ]
     )
 
+    assert (
+        HajimeFinalGradeFromImgParams.__dataclass_fields__["save_agree"].default
+        is None
+    )
     assert final_field.default is None
     assert required_field.default is None
 

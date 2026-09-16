@@ -19,6 +19,8 @@ ImageRole = Literal[
     "schedule",
     "party",
     "score",
+    "mid_exam_score",
+    "final_exam_score",
 ]
 
 InferenceStatus = Literal[

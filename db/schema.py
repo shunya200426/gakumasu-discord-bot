@@ -77,7 +77,9 @@ CREATE_TABLE_QUERIES = [
                 image_role IN (
                     'schedule',
                     'party',
-                    'score'
+                    'score',
+                    'mid_exam_score',
+                    'final_exam_score'
                 )
             ),
 
@@ -154,11 +156,56 @@ CREATE_TABLE_QUERIES = [
 ]
 
 
-def create_tables(connection: sqlite3.Connection) -> None:
-    """
-    必要なテーブルを作成する。
-    """
-    for query in CREATE_TABLE_QUERIES:
-        connection.execute(query)
+def _migrate_inference_roles(connection: sqlite3.Connection, old_sql: str) -> None:
+    """Copy the parent table without renaming it or cascading into its children."""
+    indexes = connection.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'index' "
+        "AND tbl_name = 'inference_logs' AND sql IS NOT NULL"
+    ).fetchall()
+    sequence = connection.execute(
+        "SELECT seq FROM sqlite_sequence WHERE name = 'inference_logs'"
+    ).fetchone()
+    new_sql = old_sql.replace(
+        "'score'", "'score', 'mid_exam_score', 'final_exam_score'"
+    )
+    # sqlite_master contains the original CREATE statement, including quoted names.
+    opening = new_sql.index("(")
+    connection.execute("CREATE TABLE inference_logs_new " + new_sql[opening:])
+    connection.execute("INSERT INTO inference_logs_new SELECT * FROM inference_logs")
+    connection.execute("DROP TABLE inference_logs")
+    connection.execute("ALTER TABLE inference_logs_new RENAME TO inference_logs")
+    if sequence is not None:
+        connection.execute(
+            "UPDATE sqlite_sequence SET seq = MAX(seq, ?) WHERE name = 'inference_logs'",
+            (sequence[0],),
+        )
+    for (sql,) in indexes:
+        connection.execute(sql)
 
-    connection.commit()
+
+def create_tables(connection: sqlite3.Connection) -> None:
+    """Initialize tables and atomically upgrade the old image role constraint."""
+    if connection.in_transaction:
+        raise RuntimeError("テーブル初期化はトランザクション外で実行してください。")
+    foreign_keys = connection.execute("PRAGMA foreign_keys").fetchone()[0]
+    row = connection.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'inference_logs'"
+    ).fetchone()
+    migrate = row is not None and "'mid_exam_score'" not in row[0]
+    if migrate:
+        connection.execute("PRAGMA foreign_keys = OFF")
+    try:
+        connection.execute("BEGIN IMMEDIATE")
+        if migrate:
+            _migrate_inference_roles(connection, row[0])
+        for query in CREATE_TABLE_QUERIES:
+            connection.execute(query)
+        if connection.execute("PRAGMA foreign_key_check").fetchone() is not None:
+            raise sqlite3.IntegrityError("DB初期化後の外部キーに不整合があります。")
+        connection.commit()
+    except BaseException:
+        connection.rollback()
+        raise
+    finally:
+        if migrate:
+            connection.execute(f"PRAGMA foreign_keys = {foreign_keys}")

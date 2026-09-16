@@ -20,6 +20,7 @@ MODULES = [
     "commands.nia_commands.required_score_from_img.ui",
     "commands.help_command.ui",
     "commands.hajime_commands.final_grade.ui",
+    "commands.hajime_commands.final_grade_from_img.ui",
     "commands.hajime_commands.required_score.ui",
     "commands.hajime_commands.required_score_from_img.ui",
 ]
