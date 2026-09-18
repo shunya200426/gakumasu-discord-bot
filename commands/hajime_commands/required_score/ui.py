@@ -29,8 +29,8 @@ ST_MAX = HAJIME['legend']['st_max']
     目標評価ランク="目標評価ランクの設定",
     目標スコア="目標スコアの設定",
     キャラクター="キャラクターを選択",
-    アイドル強化月間="アイドル強化月間を適用しますか？",
-    ほしのきらめき="オーディション前のほしのきらめきの数"
+    # アイドル強化月間="アイドル強化月間を適用しますか？",
+    # ほしのきらめき="オーディション前のほしのきらめきの数"
 )
 
 @app_commands.choices(
@@ -72,8 +72,8 @@ async def hajime_required_score_command(
     目標評価ランク: str | None = None,
     目標スコア: app_commands.Range[int, 0] | None = None,
     キャラクター: str | None = None,
-    アイドル強化月間: bool = False,
-    ほしのきらめき: int = 0
+    # アイドル強化月間: bool = False,
+    # ほしのきらめき: int = 0
 ):
     # Params組み立て
     params = HajimeRequiredScoreParams(
@@ -88,8 +88,10 @@ async def hajime_required_score_command(
         target_grade    = 目標評価ランク,
         target_score    = 目標スコア,
         character       = キャラクター,
-        is_boost_active = アイドル強化月間,
-        kirameki        = ほしのきらめき,
+        # is_boost_active = アイドル強化月間,
+        # kirameki        = ほしのきらめき,
+        is_boost_active = False,
+        kirameki        = 0,
     )
 
     # コマンド処理

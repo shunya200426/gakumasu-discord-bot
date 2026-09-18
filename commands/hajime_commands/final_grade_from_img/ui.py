@@ -28,7 +28,7 @@ from .command import HajimeFinalGradeFromImgCommand
     編成画面="P手帳 編成画面のスクリーンショット",
     最終試験スコア画面="最終試験のスコアログ画面",
     最終試験順位="最終試験順位",
-    アイドル強化月間="アイドル強化月間を適用しますか？",
+    # アイドル強化月間="アイドル強化月間を適用しますか？",
     画像ログ=("精度向上用の画像保存設定（未指定の場合は現在の設定を維持します）"),
 )
 @app_commands.choices(
@@ -59,7 +59,7 @@ async def hajime_final_grade_from_img_command(
     da試験終了時アビ: app_commands.Range[int, 0] = 0,
     vi試験終了時アビ: app_commands.Range[int, 0] = 0,
     キャラクター: str | None = None,
-    アイドル強化月間: bool = False,
+    # アイドル強化月間: bool = False,
     画像ログ: bool | None = None,
 ):
     # Params組み立て
@@ -72,7 +72,8 @@ async def hajime_final_grade_from_img_command(
         mid_exam_score_img=中間試験スコア画面,
         mid_exam_score=中間試験スコア,
         character=キャラクター,
-        is_boost_active=アイドル強化月間,
+        # is_boost_active=アイドル強化月間,
+        is_boost_active=False,
         party_img=編成画面,
         final_exam_score_img=最終試験スコア画面,
         final_exam_rank=最終試験順位.value,

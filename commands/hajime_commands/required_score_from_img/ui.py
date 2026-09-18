@@ -29,7 +29,7 @@ from .command import HajimeRequiredScoreFromImgCommand
     編成画面="P手帳 編成画面のスクリーンショット",
     目標評価ランク="目標評価ランクの設定",
     目標スコア="目標スコアの設定",
-    アイドル強化月間="アイドル強化月間を適用しますか？",
+    # アイドル強化月間="アイドル強化月間を適用しますか？",
     画像ログ=(
         "精度向上用の画像保存設定"
         "（未指定の場合は現在の設定を維持します）"
@@ -75,7 +75,7 @@ async def hajime_required_score_from_img_command(
     目標評価ランク: str | None = None,
     目標スコア: app_commands.Range[int, 0] | None = None,
     キャラクター: str | None = None,
-    アイドル強化月間: bool = False,
+    # アイドル強化月間: bool = False,
     画像ログ: bool | None = None
 ):
     # Params組み立て
@@ -88,7 +88,8 @@ async def hajime_required_score_from_img_command(
         mid_exam_score_img = 中間試験スコア画面,
         mid_exam_score     = 中間試験スコア,
         character          = キャラクター,
-        is_boost_active    = アイドル強化月間,
+        # is_boost_active    = アイドル強化月間,
+        is_boost_active    = False,
         party_img          = 編成画面,
         target_grade       = 目標評価ランク,
         target_score       = 目標スコア,
