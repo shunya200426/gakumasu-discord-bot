@@ -40,6 +40,9 @@ _LABEL2KEY = {
     "Voパラメータ": "vo_status",
     "Daパラメータ": "da_status",
     "Viパラメータ": "vi_status",
+    "Vo試験終了時アビ": "vo_ability",
+    "Da試験終了時アビ": "da_ability",
+    "Vi試験終了時アビ": "vi_ability",
     "中間試験スコア": "mid_exam_score",
 }
 
@@ -61,9 +64,13 @@ class AddExamScoreModal(ui.Modal):
         raw = (self.input.value or "").strip()
         try:
             new_exam_score = int(raw)
+
+            if new_exam_score < 0:
+                raise ValueError
+            
         except ValueError:
             await interaction.followup.send(
-                "半角数字で入力してください。",
+                "0以上の半角数字で入力してください。",
                 ephemeral=True,
             )
             return
@@ -82,10 +89,17 @@ class ParamEditModal(ui.Modal):
         self.current = current
         self.inputs = {}
         for param in selected_params:
+            key = _LABEL2KEY.get(param, "")
+            current_value = current.get(key)
+
             input_box = ui.TextInput(
                 label=param,
                 required=False,
-                default=str(current.get(_LABEL2KEY.get(param, ""), "")),
+                default=(
+                    ""
+                    if current_value is None
+                    else str (current_value)
+                ),
                 placeholder="数値を入力",
             )
             self.add_item(input_box)
@@ -130,12 +144,15 @@ class ParamSelect(ui.Select):
             discord.SelectOption(label="Voパラメータ"),
             discord.SelectOption(label="Daパラメータ"),
             discord.SelectOption(label="Viパラメータ"),
+            discord.SelectOption(label="Vo試験終了時アビ"),
+            discord.SelectOption(label="Da試験終了時アビ"),
+            discord.SelectOption(label="Vi試験終了時アビ"),
             discord.SelectOption(label="中間試験スコア"),
         ]
         super().__init__(
             placeholder="パラメータを修正する",
             min_values=1,
-            max_values=len(options),
+            max_values=5,
             options=options,
         )
         self.cmd = cmd
@@ -187,9 +204,6 @@ class HajimeRequiredScoreFromImgCommand(BaseCommand):
 
         self._static = {
             "mode": params.mode,
-            "vo_ability": params.vo_ability,
-            "da_ability": params.da_ability,
-            "vi_ability": params.vi_ability,
             "character": params.character,
             "target_grade": params.target_grade,
             "target_score": params.target_score,
@@ -289,7 +303,10 @@ class HajimeRequiredScoreFromImgCommand(BaseCommand):
                 status="SUCCESS" if use_case_result.success else "OCR_FAILED",
             )
 
-            self._set_current_values(use_case_result)
+            self._set_current_values(
+                params=params,
+                result=use_case_result
+            )
             if not use_case_result.success:
                 await self._send_ocr_error_view(
                     interaction=interaction,
@@ -482,12 +499,20 @@ class HajimeRequiredScoreFromImgCommand(BaseCommand):
             raise RuntimeError("InferenceServiceが初期化されていません。")
         return InferenceUseCase(inference_service)
 
-    def _set_current_values(self, result: InferenceUseCaseResult) -> None:
+    def _set_current_values(
+        self, 
+        *,
+        params: HajimeRequiredScoreFromImgParams,
+        result: InferenceUseCaseResult
+    ) -> None:
         self._current_values = {
-            "vo_status": result.parameters.get("vo") or 0,
-            "da_status": result.parameters.get("da") or 0,
-            "vi_status": result.parameters.get("vi") or 0,
-            "mid_exam_score": result.mid_exam_score or 0,
+            "vo_status": result.parameters.get("vo"),
+            "da_status": result.parameters.get("da"),
+            "vi_status": result.parameters.get("vi"),
+            "vo_ability": params.vo_ability,
+            "da_ability": params.da_ability,
+            "vi_ability": params.vi_ability,
+            "mid_exam_score": result.mid_exam_score,
         }
         self._static.update(self._current_values)
 
@@ -537,9 +562,9 @@ class HajimeRequiredScoreFromImgCommand(BaseCommand):
                 character=static["character"],
                 target_grade=static["target_grade"],
                 target_score=static["target_score"],
-                vo_ability=static["vo_ability"],
-                da_ability=static["da_ability"],
-                vi_ability=static["vi_ability"],
+                vo_ability=merged.get("vo_ability"),
+                da_ability=merged.get("da_ability"),
+                vi_ability=merged.get("vi_ability"),
                 vo_status=merged.get("vo_status"),
                 da_status=merged.get("da_status"),
                 vi_status=merged.get("vi_status"),
