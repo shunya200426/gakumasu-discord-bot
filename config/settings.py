@@ -15,4 +15,31 @@ SETTINGS = {
         "A+": 11500,
         "A": 10000,
     },
+
+    "boost": {
+        "NIA": {
+            "pro": {
+                "boost_coeff": 0.7,
+                "kirameki_coeff": 9.6625,
+            },
+            "master": {
+                "boost_coeff": 0.7,
+                "kirameki_coeff": 10.82,
+            },
+        },
+
+        "Hajime": {
+            "legend": {
+                "boost_coeff": 0.72,
+                "kirameki_coeff": 11.016,
+            },
+        },  
+
+        "H.I.F": {
+            "default": {
+                "boost_coeff": 0.72,
+                "kirameki_coeff": 0.8888,
+            },
+        },
+    },
 }

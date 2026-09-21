@@ -13,9 +13,11 @@ from .base_scenario import ScenarioBase
 
 class NiaScenario(ScenarioBase):
     def __init__(self, mode: str):
-        super().__init__(mode)
+        super().__init__(
+            mode=mode,
+            scenario_key="NIA",
+        )
         self.settings = NIA
-        # 文脈付きロガー（シナリオ/モード）
         self.log = get_logger(context={"scenario": "NIA", "mode": mode})
 
     def calculate_score(self, params: NiaFinalGradeParams) -> NiaFinalGradeResult:

@@ -1,7 +1,7 @@
 # scenarios/hajime.py
 import math
 
-from config.settings import HAJIME
+from config.character_settings import HAJIME
 from models.hajime.final_grade.params import HajimeFinalGradeParams
 from models.hajime.final_grade.result import HajimeFinalGradeResult
 from utils.logger import logger
@@ -11,7 +11,10 @@ from .base_scenario import ScenarioBase
 
 class HajimeScenario(ScenarioBase):
     def __init__(self, mode: str):
-        super().__init__(mode)
+        super().__init__(
+            mode=mode,
+            scenario_key="Hajime",
+        )
         self.settings = HAJIME
 
     def calculate_score(self, params: HajimeFinalGradeParams):

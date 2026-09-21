@@ -11,7 +11,7 @@ def build_final_grade_embed(result: NiaFinalGradeResult) -> Embed:
     embed = Embed(
         title=f"NIA 【{NIA[result.mode]['name']}】",
         color=CHARACTERS[result.character]['color'],
-        description=f"## {'NIA'[result.mode][result.audition]['name']}"
+        description=f"## {NIA[result.mode][result.audition]['name']}"
     )
 
     if result.is_boost_active:
