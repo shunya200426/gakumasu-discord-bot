@@ -4,7 +4,7 @@
 from discord import Interaction, app_commands
 
 from commands.groups import hajime
-from config.settings import CHARACTERS
+from config.character_settings import CHARACTERS
 from models.hajime.final_grade.params import HajimeFinalGradeParams
 
 from .command import HajimeFinalGradeCommand
@@ -40,9 +40,9 @@ from .command import HajimeFinalGradeCommand
 
 @app_commands.choices(
     難易度=[
-        app_commands.Choice(name="レギュラー", value="regular"),
-        app_commands.Choice(name="プロ", value="pro"),
-        app_commands.Choice(name="マスター", value="master"),
+        # app_commands.Choice(name="レギュラー", value="regular"),
+        # app_commands.Choice(name="プロ", value="pro"),
+        # app_commands.Choice(name="マスター", value="master"),
         app_commands.Choice(name="レジェンド", value="legend")
     ]
 )

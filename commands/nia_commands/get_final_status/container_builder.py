@@ -2,8 +2,8 @@ from pathlib import Path
 
 from discord import ui
 
+from config.character_settings import CHARACTERS
 from config.nia_settings import NIA
-from config.settings import CHARACTERS
 from models.nia.get_final_status.result import NiaGetFinalStatusResult
 
 

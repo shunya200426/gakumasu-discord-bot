@@ -2,7 +2,7 @@
 
 from discord import Embed
 
-from config.settings import CHARACTERS
+from config.character_settings import CHARACTERS
 from models.nia.get_final_status.result import NiaGetFinalStatusResult
 
 

@@ -2,7 +2,8 @@
 
 import math
 
-from config.settings import SETTINGS
+from config.character_settings import CHARACTERS
+from config.nia_settings import NIA
 from models.nia.final_grade.params import NiaFinalGradeParams
 from models.nia.final_grade.result import NiaFinalGradeResult
 from utils.logger import get_logger
@@ -13,7 +14,7 @@ from .base_scenario import ScenarioBase
 class NiaScenario(ScenarioBase):
     def __init__(self, mode: str):
         super().__init__(mode)
-        self.settings = SETTINGS["NIA"]
+        self.settings = NIA
         # 文脈付きロガー（シナリオ/モード）
         self.log = get_logger(context={"scenario": "NIA", "mode": mode})
 
@@ -157,7 +158,7 @@ class NiaScenario(ScenarioBase):
         self.log.debug("start: calculate_get_status character=%s audition=%s", character, audition)
 
         # キャラクターの流行情報を取得して整理
-        trend = SETTINGS["characters"][character]["trend"]
+        trend = CHARACTERS[character]["trend"]
         trend_type = trend["type"]  # "balanced" or "focused"
         trend_data = self.settings[self.mode][audition]["status"][trend_type]
 

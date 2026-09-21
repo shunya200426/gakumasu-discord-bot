@@ -3,7 +3,8 @@
 from discord import Interaction, app_commands
 
 from commands.groups import nia
-from config.settings import CHARACTERS, NIA
+from config.character_settings import CHARACTERS
+from config.nia_settings import NIA
 from models.nia.required_score.params import NiaRequiredScoreParams
 
 from .command import NiaRequiredScoreCommand

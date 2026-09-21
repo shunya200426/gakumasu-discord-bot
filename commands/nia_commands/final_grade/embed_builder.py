@@ -2,15 +2,16 @@
 
 from discord import Embed
 
-from config.settings import SETTINGS
+from config.character_settings import CHARACTERS
+from config.nia_settings import NIA
 from models.nia.final_grade.result import NiaFinalGradeResult
 
 
 def build_final_grade_embed(result: NiaFinalGradeResult) -> Embed:
     embed = Embed(
-        title=f"NIA 【{SETTINGS['NIA'][result.mode]['name']}】",
-        color=SETTINGS['characters'][result.character]['color'],
-        description=f"## {SETTINGS['NIA'][result.mode][result.audition]['name']}"
+        title=f"NIA 【{NIA[result.mode]['name']}】",
+        color=CHARACTERS[result.character]['color'],
+        description=f"## {'NIA'[result.mode][result.audition]['name']}"
     )
 
     if result.is_boost_active:
@@ -22,7 +23,7 @@ def build_final_grade_embed(result: NiaFinalGradeResult) -> Embed:
 
     embed.add_field(
         name="キャラクター",
-        value=f"**{SETTINGS['characters'][result.character]['name']}**\n\u200b",
+        value=f"**{CHARACTERS[result.character]['name']}**\n\u200b",
         inline=False
     )
 

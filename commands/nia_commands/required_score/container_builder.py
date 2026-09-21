@@ -5,8 +5,8 @@ from typing import Any
 
 from discord import ui
 
+from config.character_settings import CHARACTERS
 from config.nia_settings import NIA
-from config.settings import CHARACTERS
 from models.nia.required_score.result import NiaRequiredScoreResult
 
 

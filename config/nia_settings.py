@@ -13,6 +13,10 @@ NIA = {
     "pro": {
         "name": "プロ",
         "st_max": 2000,
+        "boost": {
+            "boost_coeff": 0.7,
+            "kirameki_coeff": 9.6625,
+        },
     },
     
     "master": {
@@ -171,6 +175,8 @@ NIA = {
         },
 
         "boost": {
+            "boost_coeff": 0.7,
+            "kirameki_coeff": 10.82,
             "base_score": {"audition_score": 0, "correction_constant": -4, "fan_score_coefficient": 1411},
             "first_damping": {"audition_score": 131200, "correction_constant": 89, "fan_score_coefficient": 5051},
             "max_score": {"audition_score": 339000, "kirameki": 130},
