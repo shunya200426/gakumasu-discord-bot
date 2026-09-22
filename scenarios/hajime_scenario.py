@@ -1,7 +1,7 @@
 # scenarios/hajime.py
 import math
 
-from config.character_settings import HAJIME
+from config.hajime_settings import HAJIME
 from models.hajime.final_grade.params import HajimeFinalGradeParams
 from models.hajime.final_grade.result import HajimeFinalGradeResult
 from utils.logger import logger
@@ -129,22 +129,3 @@ class HajimeScenario(ScenarioBase):
         tail_rate = coefs[len(thresholds) - 1] / den
         need = remain / tail_rate
         return math.ceil(last + need)
-
-
-    def _apply_attenuation(self, raw_exam_score: int, thresholds: list, coefficients: list, den: int = 1000) -> int:
-        """
-        試験のスコアを、評価値点へ変換する
-        raw_exam_score: 試験のスコア
-        thresholds: 減衰の区間のリスト
-        coefficients: 係数のリスト
-        den: 係数の母数
-        """
-        out = []
-        for i in range(len(thresholds)-1):
-            width = max(0, min(raw_exam_score, thresholds[i+1]) - thresholds[i])
-            out.append((width * coefficients[i]) // den)
-        
-        exam_eval_points = sum(out)
-        
-        # 減衰処理をしたスコアの値を返す
-        return exam_eval_points

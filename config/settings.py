@@ -35,10 +35,10 @@ SETTINGS = {
             },
         },  
 
-        "H.I.F": {
+        "HIF": {
             "default": {
-                "boost_coeff": 0.72,
-                "kirameki_coeff": 0.8888,
+                "boost_coeff": 0.718,
+                "kirameki_coeff": 9,
             },
         },
     },

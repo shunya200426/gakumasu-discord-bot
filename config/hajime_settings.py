@@ -98,8 +98,6 @@ HAJIME = {
             },
         },
         "boost": {
-            "boost_coeff": 0.72,
-            "kirameki_coeff": 11.016,
             "kirameki": {
                 "pre_exam_max": 420,
                 "exam_gain_max": 190,

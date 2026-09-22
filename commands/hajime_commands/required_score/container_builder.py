@@ -6,8 +6,8 @@ from typing import Any
 import discord
 from discord import ui
 
+from config.character_settings import CHARACTERS
 from config.hajime_settings import HAJIME
-from config.settings import CHARACTERS
 from models.hajime.required_score.result import HajimeRequiredScoreResult
 
 
