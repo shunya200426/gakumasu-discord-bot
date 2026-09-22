@@ -7,6 +7,7 @@ from commands.base_command import BaseCommand
 from commands.hajime_commands.final_grade.container_builder import (
     build_final_grade_container,
 )
+from config.bot_settings import LAYOUT_VIEW_TIMEOUT_SECONDS
 from models.hajime.final_grade.params import HajimeFinalGradeParams
 from models.hajime.final_grade.result import HajimeFinalGradeResult
 from models.hajime.required_score.params import HajimeRequiredScoreParams
@@ -136,7 +137,7 @@ class HajimeRequiredScoreCommand(BaseCommand):
 
         # View / Container構築 -> メッセージ送信
         logger.info("View/Container構築開始")
-        view = ui.LayoutView()
+        view = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
         container = build_required_score_container(result, override_pairs=pairs)
         container.add_item(ui.Separator())
         row = ui.ActionRow()
@@ -179,7 +180,7 @@ class HajimeRequiredScoreCommand(BaseCommand):
             
             # View/Container 構築
             logger.info("View/Container構築開始")
-            layout = ui.LayoutView()
+            layout = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
             container = build_final_grade_container(result)
             container.add_item(ui.Separator())
             row = ui.ActionRow()

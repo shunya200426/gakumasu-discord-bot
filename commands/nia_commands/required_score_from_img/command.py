@@ -14,6 +14,7 @@ from commands.nia_commands.required_score.command import NiaRequiredScoreCommand
 from commands.nia_commands.required_score.container_builder import (
     build_required_score_container,
 )
+from config.bot_settings import LAYOUT_VIEW_TIMEOUT_SECONDS
 from models.nia.required_score_from_img.params import NiaRequiredScoreFromImgParams
 from services.inference_service import InferenceService
 from utils.logger import get_logger
@@ -501,7 +502,7 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
 
         # View / Container構築
         logger.debug("View/Container構築開始")
-        layout = ui.LayoutView()
+        layout = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
         container = build_required_score_container(result, override_pairs=pairs)
         container.add_item(ui.Separator())
 
@@ -659,7 +660,7 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
         """
         logger.info("ERROR View/Container構築開始")
 
-        err_layout = ui.LayoutView()
+        err_layout = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
         err_container = build_error_container(
             params=parameters_dict,
             bonus=bonus_dict,
@@ -749,7 +750,7 @@ class NiaRequiredScoreFromImgCommand(NiaRequiredScoreCommand):
 
             # View / Container構築 -> メッセージ送信
             logger.debug("View/Container構築開始")
-            layout = ui.LayoutView()
+            layout = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
             container = build_required_score_container(result, override_pairs=pairs)
             container.add_item(ui.Separator())
 

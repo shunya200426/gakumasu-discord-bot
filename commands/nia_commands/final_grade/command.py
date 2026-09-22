@@ -2,6 +2,7 @@
 from discord import ui
 
 from commands.base_command import BaseCommand
+from config.bot_settings import LAYOUT_VIEW_TIMEOUT_SECONDS
 from models.nia.final_grade.params import NiaFinalGradeParams
 from models.nia.final_grade.result import NiaFinalGradeResult
 from scenarios import NiaScenario
@@ -41,7 +42,7 @@ class NiaFinalGradeCommand(BaseCommand):
         logger.info("Container構築完了：メッセージを送信")
 
         # View に Container を追加して送信
-        view = ui.LayoutView()
+        view = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
         view.add_item(container)
         await self.interaction.response.send_message(view=view)
 

@@ -3,6 +3,7 @@ import discord
 from discord import ui
 
 from commands.base_command import BaseCommand
+from config.bot_settings import LAYOUT_VIEW_TIMEOUT_SECONDS
 from models.hajime.final_grade.params import HajimeFinalGradeParams
 from models.hajime.final_grade.result import HajimeFinalGradeResult
 from scenarios import HajimeScenario
@@ -94,7 +95,7 @@ class HajimeFinalGradeCommand(BaseCommand):
 
         # View/Container 構築
         logger.info("View/Container構築開始")
-        layout = ui.LayoutView(timeout=600)
+        layout = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
         container = build_final_grade_container(result)
         container.add_item(ui.Separator())
         row = ui.ActionRow()
@@ -137,7 +138,7 @@ class HajimeFinalGradeCommand(BaseCommand):
             
             # View/Container 構築
             logger.info("View/Container構築開始")
-            layout = ui.LayoutView()
+            layout = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
             container = build_final_grade_container(result)
             container.add_item(ui.Separator())
             row = ui.ActionRow()

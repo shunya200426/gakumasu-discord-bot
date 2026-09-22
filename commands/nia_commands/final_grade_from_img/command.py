@@ -15,6 +15,7 @@ from commands.base_command import BaseCommand
 from commands.nia_commands.final_grade.container_builder import (
     build_final_grade_container,
 )
+from config.bot_settings import LAYOUT_VIEW_TIMEOUT_SECONDS
 from models.nia.final_grade_from_img.params import (
     NiaFinalGradeFromImgParams,
 )
@@ -739,7 +740,7 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
             "View/Container構築開始"
         )
 
-        view = ui.LayoutView()
+        view = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
         container = build_final_grade_container(
             result
         )
@@ -946,7 +947,7 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
             "ERROR View/Container構築開始"
         )
 
-        view = ui.LayoutView()
+        view = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
 
         error_container = build_error_container(
             params=parameters_dict,
@@ -1068,7 +1069,7 @@ class NiaFinalGradeFromImgCommand(BaseCommand):
                 "View/Container構築開始"
             )
 
-            layout = ui.LayoutView()
+            layout = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
 
             container = (
                 build_final_grade_container(

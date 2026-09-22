@@ -57,7 +57,7 @@ from .command import HajimeFinalGradeCommand
 )
 
 
-async def nia_final_grade_command(
+async def hajime_final_grade_command(
     interaction: Interaction,
     難易度: app_commands.Choice[str],
     voパラメータ: app_commands.Range[int, 0, 2800],

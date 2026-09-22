@@ -15,6 +15,7 @@ from commands.hajime_commands.final_grade.container_builder import (
 from commands.hajime_commands.required_score.calculator import (
     BOOST_MODE_NOT_SUPPORTED_MESSAGE,
 )
+from config.bot_settings import LAYOUT_VIEW_TIMEOUT_SECONDS
 from inference.result import InferenceResult
 from models.hajime.final_grade_from_img.params import (
     HajimeFinalGradeFromImgParams,
@@ -486,7 +487,7 @@ class HajimeFinalGradeFromImgCommand(BaseCommand):
         container.add_item(ui.ActionRow(FinalExamRankSelect(self)))
 
     def _build_result_view(self, result) -> ui.LayoutView:
-        layout = ui.LayoutView(timeout=600)
+        layout = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
         container = build_final_grade_container(result)
         source = (
             "画像"
@@ -504,7 +505,7 @@ class HajimeFinalGradeFromImgCommand(BaseCommand):
         interaction: discord.Interaction,
         use_case_result: InferenceUseCaseResult,
     ) -> None:
-        layout = ui.LayoutView(timeout=600)
+        layout = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
         container = build_error_container(
             values=self._current_values, error_reason=use_case_result.error_reason
         )
@@ -539,7 +540,7 @@ class HajimeFinalGradeFromImgCommand(BaseCommand):
                     values=values, error_reason="未取得の入力値を修正してください。"
                 )
                 self._add_controls(container)
-                layout = ui.LayoutView(timeout=600)
+                layout = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
                 layout.add_item(container)
             else:
                 result = use_case.calculate(

@@ -28,3 +28,6 @@ class HifFinalGradeParams:
     # アイドル強化月間
     is_boost_active: bool
     kirameki: int
+
+    # キャラクター
+    character: str | None

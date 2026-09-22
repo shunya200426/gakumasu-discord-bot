@@ -4,6 +4,7 @@ import time
 from discord import ui
 
 from commands.base_command import BaseCommand
+from config.bot_settings import LAYOUT_VIEW_TIMEOUT_SECONDS
 from models.nia.final_grade.params import NiaFinalGradeParams
 from models.nia.required_score.params import NiaRequiredScoreParams
 from models.nia.required_score.result import NiaRequiredScoreResult
@@ -113,7 +114,7 @@ class NiaRequiredScoreCommand(BaseCommand):
 
         # View / Container構築 -> メッセージ送信
         logger.debug("View/Container構築開始")
-        view = ui.LayoutView()
+        view = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
         container = build_required_score_container(result, override_pairs=pairs)
         view.add_item(container)
         logger.debug("View/Container構築完了: メッセージ送信を開始")

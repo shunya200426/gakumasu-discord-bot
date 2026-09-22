@@ -2,6 +2,7 @@
 from discord import ui
 
 from commands.base_command import BaseCommand
+from config.bot_settings import LAYOUT_VIEW_TIMEOUT_SECONDS
 from config.nia_settings import NIA
 from models.nia.get_final_status.params import NiaGetFinalStatusParams
 from models.nia.get_final_status.result import NiaGetFinalStatusResult
@@ -80,7 +81,7 @@ class NiaGetFinalStarusCommand(BaseCommand):
         logger.info("Container構築完了：メッセージ送信を開始")
 
         # ViewにContainerを追加してメッセージを送信
-        view= ui.LayoutView()
+        view= ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
         view.add_item(container)
         await self.interaction.response.send_message(view=view)
 

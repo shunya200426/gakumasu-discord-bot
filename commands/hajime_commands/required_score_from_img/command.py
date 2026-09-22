@@ -18,6 +18,7 @@ from commands.hajime_commands.required_score.calculator import (
 from commands.hajime_commands.required_score.container_builder import (
     build_required_score_container,
 )
+from config.bot_settings import LAYOUT_VIEW_TIMEOUT_SECONDS
 from inference.result import InferenceResult
 from models.hajime.final_grade.params import HajimeFinalGradeParams
 from models.hajime.final_grade.result import HajimeFinalGradeResult
@@ -320,7 +321,7 @@ class HajimeRequiredScoreFromImgCommand(BaseCommand):
             if result is None:
                 raise RuntimeError("必要スコア計算結果がありません。")
 
-            layout = ui.LayoutView()
+            layout = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
             container = build_required_score_container(
                 result,
                 override_pairs=use_case_result.pairs,
@@ -522,7 +523,7 @@ class HajimeRequiredScoreFromImgCommand(BaseCommand):
         interaction: discord.Interaction,
         use_case_result: InferenceUseCaseResult,
     ) -> None:
-        layout = ui.LayoutView()
+        layout = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
         container = build_error_container(
             params=use_case_result.parameters,
             score_dict=use_case_result.scores,
@@ -573,7 +574,7 @@ class HajimeRequiredScoreFromImgCommand(BaseCommand):
             self._current_values = merged
             self._static.update(merged)
 
-            layout = ui.LayoutView()
+            layout = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
             container = build_required_score_container(result, override_pairs=pairs)
             container.add_item(ui.Separator())
             parameter_row = ui.ActionRow()
@@ -611,7 +612,7 @@ class HajimeRequiredScoreFromImgCommand(BaseCommand):
             scenario = HajimeScenario(mode=params.mode)
             result: HajimeFinalGradeResult = scenario.calculate_score(params)
 
-            layout = ui.LayoutView()
+            layout = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
             container = build_final_grade_container(result)
             container.add_item(ui.Separator())
             row = ui.ActionRow()

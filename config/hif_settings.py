@@ -2,6 +2,10 @@ HIF = {
     "default":{
         "st_max": 3200,
         "status_point_rate": 2.0,
+        "star_max": {
+            "before_round1": 930,
+            "before_round2": 1110,
+        },
         "star_point_rate": 7.5,
         "base_offset": -2000,
 
