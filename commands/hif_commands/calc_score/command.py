@@ -5,20 +5,20 @@ from discord import ui
 
 from commands.base_command import BaseCommand
 from config.bot_settings import LAYOUT_VIEW_TIMEOUT_SECONDS
-from models.hif.final_grade.params import HifFinalGradeParams
-from models.hif.final_grade.result import HifFinalGradeResult
+from models.hif.final_grade.params import HifCalcScoreParams
+from models.hif.final_grade.result import HifCalcScoreResult
 from scenarios.hif_scenario import HifScenario
 from utils.logger import get_logger
 
 from .container_builder import build_final_grade_container
 
-COMMAND_NAME = "hif_final_grade"
+COMMAND_NAME = "hif_calc_score"
 logger = get_logger()
 
 
 # --- Modal 定義 ---
 class Round2ScoreEditModal(ui.Modal):
-    def __init__(self, cmd: "HifFinalGradeCommand"):
+    def __init__(self, cmd: "HifCalcScoreCommand"):
         super().__init__(title="ラウンド2のスコアを入力")
         self.cmd = cmd
 
@@ -65,7 +65,7 @@ class Round2ScoreEditModal(ui.Modal):
 
 # --- Button 定義 ---
 class Round2ScoreEditButton(ui.Button):
-    def __init__(self, cmd: "HifFinalGradeCommand"):
+    def __init__(self, cmd: "HifCalcScoreCommand"):
         super().__init__(
             style=discord.ButtonStyle.primary,
             label="ラウンド2のスコアを変更する",
@@ -78,12 +78,12 @@ class Round2ScoreEditButton(ui.Button):
         )
 
 
-class HifFinalGradeCommand(BaseCommand):
+class HifCalcScoreCommand(BaseCommand):
     """
     H.I.Fシナリオの最終評価計算コマンド
     """
 
-    async def execute(self, params: HifFinalGradeParams):
+    async def execute(self, params: HifCalcScoreParams):
         self.log_command_start(COMMAND_NAME)
         logger.info("calc params %s", params)
 
@@ -115,7 +115,7 @@ class HifFinalGradeCommand(BaseCommand):
 
         # H.I.F評価値計算
         scenario = HifScenario(mode=params.mode)
-        result: HifFinalGradeResult = scenario.calculate_score(params)
+        result: HifCalcScoreResult = scenario.calculate_score(params)
 
         # View / Container 構築
         logger.info("View/Container構築開始")
@@ -160,7 +160,7 @@ class HifFinalGradeCommand(BaseCommand):
             )
 
             # 初回入力値 + 新しいR2スコアでParamsを再構築
-            edit_params = HifFinalGradeParams(
+            edit_params = HifCalcScoreParams(
                 mode=self._static["mode"],
 
                 vo_status=self._static["vo_status"],
@@ -186,7 +186,7 @@ class HifFinalGradeCommand(BaseCommand):
 
             # 再計算
             scenario = HifScenario(mode=edit_params.mode)
-            result: HifFinalGradeResult = scenario.calculate_score(
+            result: HifCalcScoreResult = scenario.calculate_score(
                 edit_params
             )
 

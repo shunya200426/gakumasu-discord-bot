@@ -23,7 +23,7 @@ MODULES = [
     "commands.hajime_commands.final_grade_from_img.ui",
     "commands.hajime_commands.required_score.ui",
     "commands.hajime_commands.required_score_from_img.ui",
-    "commands.hif_commands.final_grade.ui",
+    "commands.hif_commands.calc_score.ui",
 ]
 
 

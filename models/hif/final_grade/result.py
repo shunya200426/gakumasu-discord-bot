@@ -2,11 +2,11 @@
 
 from dataclasses import dataclass
 
-from .params import HifFinalGradeParams
+from .params import HifCalcScoreParams
 
 
 @dataclass
-class HifFinalGradeResult(HifFinalGradeParams):
+class HifCalcScoreResult(HifCalcScoreParams):
     round1_score_corrected: int
     
     final_vo_status: int

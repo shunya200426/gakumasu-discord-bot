@@ -8,7 +8,7 @@ from config.character_settings import CHARACTERS
 from config.hif_settings import HIF
 from models.hif.final_grade.params import HifFinalGradeParams
 
-from .command import HifFinalGradeCommand
+from .command import HifCalcScoreCommand
 
 st_max = HIF['default']['st_max']
 star_before_round2_max = HIF["default"]["star_max"]["before_round2"]
@@ -76,4 +76,4 @@ async def hif_final_grade_command(
     )
 
     # コマンド処理
-    await HifFinalGradeCommand(interaction).execute(params)
+    await HifCalcScoreCommand(interaction).execute(params)

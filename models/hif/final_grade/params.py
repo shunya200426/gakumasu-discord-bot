@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class HifFinalGradeParams:
+class HifCalcScoreParams:
     # モード
     mode: str
 
