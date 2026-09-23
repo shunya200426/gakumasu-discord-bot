@@ -1,16 +1,16 @@
-# commands/hif_commands/final_grade/command.py
+# commands/hif_commands/calc_score/command.py
 
 import discord
 from discord import ui
 
 from commands.base_command import BaseCommand
 from config.bot_settings import LAYOUT_VIEW_TIMEOUT_SECONDS
-from models.hif.final_grade.params import HifCalcScoreParams
-from models.hif.final_grade.result import HifCalcScoreResult
+from models.hif.calc_score.params import HifCalcScoreParams
+from models.hif.calc_score.result import HifCalcScoreResult
 from scenarios.hif_scenario import HifScenario
 from utils.logger import get_logger
 
-from .container_builder import build_final_grade_container
+from .container_builder import build_calc_score_container
 
 COMMAND_NAME = "hif_calc_score"
 logger = get_logger()
@@ -122,7 +122,7 @@ class HifCalcScoreCommand(BaseCommand):
 
         layout = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
 
-        container = build_final_grade_container(result)
+        container = build_calc_score_container(result)
 
         # R2スコア再計算ボタン
         container.add_item(ui.Separator())
@@ -198,7 +198,7 @@ class HifCalcScoreCommand(BaseCommand):
 
             layout = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
 
-            container = build_final_grade_container(result)
+            container = build_calc_score_container(result)
 
             container.add_item(ui.Separator())
 

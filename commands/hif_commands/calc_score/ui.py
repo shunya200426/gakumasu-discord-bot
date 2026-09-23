@@ -1,4 +1,4 @@
-# hif_commands/final_grade/ui.py
+# hif_commands/calc_score/ui.py
 
 
 from discord import Interaction, app_commands
@@ -6,7 +6,7 @@ from discord import Interaction, app_commands
 from commands.groups import hif
 from config.character_settings import CHARACTERS
 from config.hif_settings import HIF
-from models.hif.final_grade.params import HifFinalGradeParams
+from models.hif.calc_score.params import HifCalcScoreParams
 
 from .command import HifCalcScoreCommand
 
@@ -14,8 +14,8 @@ st_max = HIF['default']['st_max']
 star_before_round2_max = HIF["default"]["star_max"]["before_round2"]
 
 @hif.command(
-    name="final_grade",
-    description="最終評価を計算します",
+    name="calc_score",
+    description="最終評価または要求スコアを計算します",
 )
 
 @app_commands.describe(
@@ -41,7 +41,7 @@ star_before_round2_max = HIF["default"]["star_max"]["before_round2"]
 )
 
 
-async def hif_final_grade_command(
+async def hif_calc_score_command(
     interaction: Interaction,
     voパラメータ: app_commands.Range[int, 0, st_max],
     daパラメータ: app_commands.Range[int, 0, st_max],
@@ -57,7 +57,7 @@ async def hif_final_grade_command(
     # ほしのきらめき: int = 0
 ):
     # Params組み立て
-    params = HifFinalGradeParams(
+    params = HifCalcScoreParams(
         mode = "default",
         vo_status  = voパラメータ,
         da_status  = daパラメータ,

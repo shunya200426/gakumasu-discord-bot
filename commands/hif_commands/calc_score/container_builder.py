@@ -1,4 +1,4 @@
-# commands/hif_commands/final_grade/container_builder.py
+# commands/hif_commands/calc_score/container_builder.py
 
 from pathlib import Path
 
@@ -6,10 +6,10 @@ import discord
 from discord import ui
 
 from config.character_settings import CHARACTERS
-from models.hif.final_grade.result import HifCalcScoreResult
+from models.hif.calc_score.result import HifCalcScoreResult
 
 
-def build_final_grade_container(
+def build_calc_score_container(
     result: HifCalcScoreResult,
 ) -> ui.Container:
 

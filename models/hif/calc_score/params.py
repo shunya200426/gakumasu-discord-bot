@@ -1,4 +1,4 @@
-# models/hif/final_grade/params.py
+# models/hif/calc_score/params.py
 
 from dataclasses import dataclass
 
