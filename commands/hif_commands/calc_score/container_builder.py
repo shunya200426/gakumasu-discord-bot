@@ -6,11 +6,11 @@ import discord
 from discord import ui
 
 from config.character_settings import CHARACTERS
-from models.hif.final_grade.result import HifFinalGradeResult
+from models.hif.final_grade.result import HifCalcScoreResult
 
 
 def build_final_grade_container(
-    result: HifFinalGradeResult,
+    result: HifCalcScoreResult,
 ) -> ui.Container:
 
     # キャラクター表示 / コンテナカラー
