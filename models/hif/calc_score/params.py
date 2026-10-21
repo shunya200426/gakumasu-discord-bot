@@ -18,16 +18,17 @@ class HifCalcScoreParams:
     da_ability: int
     vi_ability: int
 
-    # R1 / R2スコア
-    round1_score: int
-    round2_score: int
-
-    # R2開始前スター性
-    star_before_round2: int
-
     # アイドル強化月間
     is_boost_active: bool
     kirameki: int
+
+    # R1 / R2スコア
+    round1_score: int | None
+    round2_score: int | None
+
+    # スター性
+    star_before_round1: int | None
+    star_before_round2: int | None
 
     # キャラクター
     character: str | None

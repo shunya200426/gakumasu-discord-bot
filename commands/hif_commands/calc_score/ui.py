@@ -11,6 +11,7 @@ from models.hif.calc_score.params import HifCalcScoreParams
 from .command import HifCalcScoreCommand
 
 st_max = HIF['default']['st_max']
+star_before_round1_max = HIF["default"]["star_max"]["before_round1"]
 star_before_round2_max = HIF["default"]["star_max"]["before_round2"]
 
 @hif.command(
@@ -24,7 +25,8 @@ star_before_round2_max = HIF["default"]["star_max"]["before_round2"]
     viパラメータ="Viパラメータ",
     ラウンド1スコア='ラウンド1の補正"前"スコア',
     ラウンド2スコア="ラウンド2のスコア",
-    スター性='ラウンド2"直前"のスター性',
+    R1前スター性="ラウンド1開始前スター性",
+    R2前スター性="ラウンド2開始前のスター性",
     vo試験終了時アビ="Voの試験終了時に上昇するパラメータを入力",
     da試験終了時アビ="Daの試験終了時に上昇するパラメータを入力",
     vi試験終了時アビ="Viの試験終了時に上昇するパラメータを入力",
@@ -46,9 +48,10 @@ async def hif_calc_score_command(
     voパラメータ: app_commands.Range[int, 0, st_max],
     daパラメータ: app_commands.Range[int, 0, st_max],
     viパラメータ: app_commands.Range[int, 0, st_max],
-    ラウンド1スコア: app_commands.Range[int, 0],
-    ラウンド2スコア: app_commands.Range[int, 0],
-    スター性: app_commands.Range[int, 0, star_before_round2_max],
+    ラウンド1スコア: app_commands.Range[int, 0, 1_400_000] | None = None,
+    ラウンド2スコア: app_commands.Range[int, 0, 2_400_000] | None = None,
+    R1前スター性: app_commands.Range[int, 0, star_before_round1_max] | None = None,
+    R2前スター性: app_commands.Range[int, 0, star_before_round2_max] | None = None,
     vo試験終了時アビ: app_commands.Range[int, 0] = 0,
     da試験終了時アビ: app_commands.Range[int, 0] = 0,
     vi試験終了時アビ: app_commands.Range[int, 0] = 0,
@@ -58,16 +61,17 @@ async def hif_calc_score_command(
 ):
     # Params組み立て
     params = HifCalcScoreParams(
-        mode = "default",
-        vo_status  = voパラメータ,
-        da_status  = daパラメータ,
-        vi_status  = viパラメータ,
-        vo_ability = vo試験終了時アビ,
-        da_ability = da試験終了時アビ,
-        vi_ability = vi試験終了時アビ,
-        round1_score = ラウンド1スコア,
-        round2_score = ラウンド2スコア,
-        star_before_round2 = スター性,
+        mode               = "default",
+        vo_status          = voパラメータ,
+        da_status          = daパラメータ,
+        vi_status          = viパラメータ,
+        vo_ability         = vo試験終了時アビ,
+        da_ability         = da試験終了時アビ,
+        vi_ability         = vi試験終了時アビ,
+        round1_score       = ラウンド1スコア,
+        round2_score       = ラウンド2スコア,
+        star_before_round1 = R1前スター性,
+        star_before_round2 = R2前スター性,
         # is_boost_active = アイドル強化月間,
         # kirameki = ほしのきらめき,
         is_boost_active = False,

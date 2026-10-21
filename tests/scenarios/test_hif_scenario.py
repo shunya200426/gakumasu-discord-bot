@@ -1,11 +1,11 @@
-from models.hif.final_grade.params import HifFinalGradeParams
+from models.hif.calc_score.params import HifCalcScoreParams
 from scenarios.hif_scenario import HifScenario
 
 
 def test_calculate_score_normal():
     scenario = HifScenario(mode="default")
 
-    params = HifFinalGradeParams(
+    params = HifCalcScoreParams(
         mode="default",
 
         vo_status=1500,

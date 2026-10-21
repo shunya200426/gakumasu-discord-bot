@@ -1,4 +1,5 @@
 # commands/hif_commands/calc_score/command.py
+from dataclasses import replace
 
 import discord
 from discord import ui
@@ -10,7 +11,15 @@ from models.hif.calc_score.result import HifCalcScoreResult
 from scenarios.hif_scenario import HifScenario
 from utils.logger import get_logger
 
-from .container_builder import build_calc_score_container
+from .calculation_resolver import (
+    HifCalculationResolver,
+    HifCalculationType,
+)
+from .calculator import HifRequiredScoreCalculator
+from .container_builder import (
+    build_final_grade_container,
+    build_required_score_container,
+)
 
 COMMAND_NAME = "hif_calc_score"
 logger = get_logger()
@@ -80,7 +89,7 @@ class Round2ScoreEditButton(ui.Button):
 
 class HifCalcScoreCommand(BaseCommand):
     """
-    H.I.Fシナリオの最終評価計算コマンド
+    H.I.Fシナリオの最終評価または要求スコアを計算するコマンド
     """
 
     async def execute(self, params: HifCalcScoreParams):
@@ -105,6 +114,7 @@ class HifCalcScoreCommand(BaseCommand):
             "round1_score": params.round1_score,
             "round2_score": params.round2_score,
 
+            "star_before_round1": params.star_before_round1,
             "star_before_round2": params.star_before_round2,
 
             "character": params.character,
@@ -115,25 +125,80 @@ class HifCalcScoreCommand(BaseCommand):
 
         # H.I.F評価値計算
         scenario = HifScenario(mode=params.mode)
-        result: HifCalcScoreResult = scenario.calculate_score(params)
 
+        resolver = HifCalculationResolver()
+        plan = resolver.resolve(params)
+
+        if plan.calculation_type == HifCalculationType.FINAL_GRADE:
+            # 最終評価
+            calculator = HifRequiredScoreCalculator()
+
+            star_before_round2 = calculator.resolve_star_before_round2(
+                scenario=scenario,
+                params=params,
+                plan=plan,
+                round1_score=plan.round1_score,
+            )
+
+            resolved_params = replace(
+                params,
+                round1_score=plan.round1_score,
+                round2_score=plan.round2_score,
+                star_before_round2=star_before_round2,
+            )
+
+            result: HifCalcScoreResult = scenario.calculate_score(
+                resolved_params
+            )
+
+        else:
+            # 要求スコア
+            calculator = HifRequiredScoreCalculator()
+
+            result_dict = calculator.compute_required_result_dict(
+                scenario=scenario,
+                params=params,
+                plan=plan,
+            )
+        
         # View / Container 構築
         logger.info("View/Container構築開始")
 
-        layout = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
+        layout = ui.LayoutView(
+            timeout=LAYOUT_VIEW_TIMEOUT_SECONDS
+        )
 
-        container = build_calc_score_container(result)
+        if (
+            plan.calculation_type
+            == HifCalculationType.FINAL_GRADE
+        ):
+            container = build_final_grade_container(
+                result
+            )
 
-        # R2スコア再計算ボタン
-        container.add_item(ui.Separator())
+            # 最終評価の場合のみR2スコア再計算ボタンを表示
+            container.add_item(
+                ui.Separator()
+            )
 
-        row = ui.ActionRow()
-        row.add_item(Round2ScoreEditButton(self))
-        container.add_item(row)
+            row = ui.ActionRow()
+            row.add_item(
+                Round2ScoreEditButton(self)
+            )
+            container.add_item(row)
+
+        else:
+            container = build_required_score_container(
+                params=params,
+                plan=plan,
+                result_dict=result_dict,
+            )
 
         layout.add_item(container)
 
-        logger.info("View/Container構築完了：メッセージを送信")
+        logger.info(
+            "View/Container構築完了：メッセージを送信"
+        )
 
         await self.interaction.response.send_message(
             view=layout,
@@ -174,6 +239,7 @@ class HifCalcScoreCommand(BaseCommand):
                 round1_score=self._static["round1_score"],
                 round2_score=round2_score,
 
+                star_before_round1=self._static["star_before_round1"],
                 star_before_round2=self._static["star_before_round2"],
 
                 character=self._static["character"],
@@ -198,7 +264,7 @@ class HifCalcScoreCommand(BaseCommand):
 
             layout = ui.LayoutView(timeout=LAYOUT_VIEW_TIMEOUT_SECONDS)
 
-            container = build_calc_score_container(result)
+            container = build_final_grade_container(result)
 
             container.add_item(ui.Separator())
 

@@ -3,8 +3,8 @@
 import math
 
 from config.hif_settings import HIF
-from models.hif.final_grade.params import HifFinalGradeParams
-from models.hif.final_grade.result import HifFinalGradeResult
+from models.hif.calc_score.params import HifCalcScoreParams
+from models.hif.calc_score.result import HifCalcScoreResult
 from utils.logger import get_logger
 
 from .base_scenario import ScenarioBase
@@ -25,8 +25,8 @@ class HifScenario(ScenarioBase):
 
     def calculate_score(
         self,
-        params: HifFinalGradeParams,
-    ) -> HifFinalGradeResult:
+        params: HifCalcScoreParams,
+    ) -> HifCalcScoreResult:
         """
         H.I.Fの評価値を計算する
         """
@@ -212,7 +212,7 @@ class HifScenario(ScenarioBase):
             final_grade,
         )
 
-        return HifFinalGradeResult(
+        return HifCalcScoreResult(
             **params.__dict__,
             round1_score_corrected=round1_score_corrected,
             final_vo_status=final_vo_status,
