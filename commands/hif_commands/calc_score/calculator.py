@@ -18,13 +18,13 @@ from .calculation_resolver import (
 logger = get_logger()
 
 CLEAR = "CLEAR!"
-CLEAR_IMPOSSIBLE = "**__CLEAR不可__**"
+CLEAR_IMPOSSIBLE = "__CLEAR不可__"
 
 SUPPORTED_GRADES = (
-    "SS",
-    "SS+",
     "SSS",
     "SSS+",
+    "S4",
+    "S4+",
 )
 
 

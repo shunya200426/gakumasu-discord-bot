@@ -147,6 +147,10 @@ class HifCalcScoreCommand(BaseCommand):
                 star_before_round2=star_before_round2,
             )
 
+            self._static["star_before_round2"] = (
+                resolved_params.star_before_round2
+            )
+
             result: HifCalcScoreResult = scenario.calculate_score(
                 resolved_params
             )

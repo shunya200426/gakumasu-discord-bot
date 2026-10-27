@@ -16,10 +16,10 @@ from models.hif.calc_score.params import HifCalcScoreParams
 from models.hif.calc_score.result import HifCalcScoreResult
 
 SUPPORTED_GRADES = (
-    "SS",
-    "SS+",
     "SSS",
     "SSS+",
+    "S4",
+    "S4+"
 )
 
 
@@ -187,6 +187,11 @@ def build_required_score_container(
         vi_ability=params.vi_ability,
 
         known_round_name=known_round_name,
+        required_round_name=(
+            "R1"
+            if plan.calculation_type == HifCalculationType.REQUIRED_R1
+            else "R2"
+        ),
         exam_score_block=exam_score_block,
         star_block=star_block,
         required_block=required_block,
@@ -287,8 +292,8 @@ def _build_star_block(
         == HifStarSource.DERIVE_ROUND1_FROM_ROUND2
     ):
         lines.append(
-            "*R1開始前スター性は"
-            "R2開始前スター性から推定して計算*"
+            "**R1開始前スター性は"
+            "R2開始前スター性から推定して計算**"
         )
 
     if not lines:
@@ -301,7 +306,7 @@ def _build_required_block(
     result_dict: dict[str, int | str],
 ) -> str:
     """
-    SS～SSS+の要求スコア表示を生成する。
+    SSS+～S4+の要求スコア表示を生成する。
     """
 
     lines = []
@@ -331,19 +336,19 @@ def _build_assumption_block(
     if plan.used_default_round2_score:
         notes.append(
             "※ R2スコア未入力のため、"
-            "**0**として計算しています。"
+            "0として計算しています。"
         )
 
     if plan.used_default_star_before_round1:
         notes.append(
             "※ R1開始前スター性未入力のため、"
-            "**930**を使用しています。"
+            "930を使用しています。"
         )
 
     if plan.used_default_star_before_round2:
         notes.append(
             "※ R2開始前スター性未入力のため、"
-            "**1110**を使用しています。"
+            "1110を使用しています。"
         )
 
     if (
@@ -352,7 +357,7 @@ def _build_assumption_block(
         notes.append(
             "※ R1スコア未入力のため、"
             "スター性の計算ではR1スコアを"
-            "**1,400,000**として扱っています。"
+            "1,400,000として扱っています。"
         )
 
     if not notes:

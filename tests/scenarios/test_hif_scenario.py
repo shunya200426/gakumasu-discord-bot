@@ -19,10 +19,13 @@ def test_calculate_score_normal():
         round1_score=1_440_034,
         round2_score=2_460_907,
 
+        star_before_round1=None,
         star_before_round2=1110,
 
         is_boost_active=True,
         kirameki=420,
+
+        character=None,
     )
 
     result = scenario.calculate_score(params)

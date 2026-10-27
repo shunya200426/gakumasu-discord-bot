@@ -13,7 +13,7 @@
 ### スター性
 {star_block}
 
-### 要求スコア
+### {required_round_name}要求スコア
 {required_block}
 
 {assumption_block}
